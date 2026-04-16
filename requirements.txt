@@ -1,0 +1,7 @@
+pdfminer.six>=20231228
+reportlab>=4.2.0
+playwright>=1.40.0
+groq>=0.4.0
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0
+numpy>=1.24.0

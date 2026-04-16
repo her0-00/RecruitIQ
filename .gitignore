@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# Logs
+logs/
+*.log
+
+# Next.js
+web/.next/
+web/node_modules/
+
+# Env
+.env
+.env.local
+.env*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test_*.pdf
+test_output.pdf
+
+# Archives and Large files
+*.zip
+*.rar
+*.7z
+*.tar.gz
+*.iso
+*.png_large
