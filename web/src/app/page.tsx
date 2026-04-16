@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { UploadCloud, FileText, CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Download, Play, LayoutTemplate, Wand2 } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Download, Play, LayoutTemplate, Wand2, ShieldCheck, Lock, Server, Eye, Trash2 } from 'lucide-react';
 import { cvExamples } from './examples';
 import OnboardingTour from './OnboardingTour';
 import SimplePDFEditor from './SimplePDFEditor';
@@ -797,7 +797,6 @@ export default function Home() {
                       Regardez l'onglet <strong>Audit</strong> : les "Missing Keywords" sont cruciaux. Intégrez-les naturellement dans vos descriptions pour augmenter votre probabilité de passage.
                     </p>
                   </div>
-
                 </div>
               </div>
             )}
@@ -1160,6 +1159,107 @@ export default function Home() {
             )}
           </>
         )}
+
+        {/* PERSISTENT FOOTER - PROFESSIONAL PRIVACY SHIELD */}
+        <footer style={{ 
+          marginTop: '5rem', 
+          padding: '4rem 2rem', 
+          borderTop: '2px solid var(--border)', 
+          background: 'var(--surface-subtle)',
+          borderRadius: 'var(--r-lg) var(--r-lg) 0 0',
+          position: 'relative'
+        }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '12px', 
+              marginBottom: '2.5rem',
+              color: 'var(--gold)'
+            }}>
+              <ShieldCheck size={28} />
+              <div style={{ textAlign: 'left' }}>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, letterSpacing: '0.15em', textTransform: 'uppercase' }}>RecruitIQ Privacy Shield</h2>
+                <p style={{ fontSize: '0.65rem', opacity: 0.6, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Conformité RGPD & Protection des Données (v4.1)</p>
+              </div>
+            </div>
+
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+              gap: '2.5rem', 
+              textAlign: 'left',
+              marginBottom: '3rem'
+            }}>
+              
+              <div className="privacy-block">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem', color: 'var(--gold-bright)' }}>
+                  <Lock size={18} />
+                  <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Traitement Ephémère</h3>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text2)', lineHeight: '1.6' }}>
+                  <strong>Engagement 0-Day Retention :</strong> RecruitIQ opère exclusivement en mémoire vive (RAM). 
+                  Vos CV, photos et offres d'emploi ne sont jamais enregistrés dans une base de données persistante.
+                  Une fois votre session fermée, les données sont atomiquement purgées.
+                </p>
+              </div>
+
+              <div className="privacy-block">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem', color: 'var(--gold-bright)' }}>
+                  <Server size={18} />
+                  <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Flux Sécurisés Cloud</h3>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text2)', lineHeight: '1.6' }}>
+                  <strong>Transit HTTPS/TLS :</strong> Vos données textuelles sont transmises via tunnel sécurisé aux API de <strong>Groq Cloud</strong> 
+                  pour l'analyse LLM. Les photos subissent un pré-traitement local sur notre instance temporaire, 
+                  et tout fichier résiduel sur disque est supprimé immédiatement après encodage.
+                </p>
+              </div>
+
+              <div className="privacy-block">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem', color: 'var(--gold-bright)' }}>
+                  <Eye size={18} />
+                  <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Vos Droits RGPD</h3>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text2)', lineHeight: '1.6' }}>
+                  Conformément au règlement (UE) 2016/679, vous disposez d'un droit total d'accès, de rectification, 
+                  et d'effacement. L'absence de stockage persistant garantit un <strong>droit à l'oubli automatique</strong> 
+                  par simple fermeture du navigateur. Votre clé API Groq reste locale à votre session.
+                </p>
+              </div>
+
+            </div>
+
+            <div style={{ 
+              borderTop: '1px solid var(--border)', 
+              paddingTop: '2rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1rem'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                gap: '2rem', 
+                fontSize: '0.62rem', 
+                color: 'var(--text3)', 
+                fontFamily: 'Space Mono, monospace',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em'
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={12} style={{ color: 'var(--green)' }} /> AES-256 TLS 1.3</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={12} style={{ color: 'var(--green)' }} /> In-Memory Processing</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={12} style={{ color: 'var(--green)' }} /> ISO 27001 Ready</span>
+              </div>
+              <div style={{ fontSize: '0.6rem', opacity: 0.4, color: 'var(--text3)' }}>
+                RecruitIQ © 2026 — Plateforme d'Intelligence CV Indépendante — Hébergement Sécurisé via Render
+              </div>
+            </div>
+
+          </div>
+        </footer>
       </div>
     </div>
   );

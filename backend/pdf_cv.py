@@ -481,7 +481,7 @@ def _draw_vertical_contact(c, cv_data, x, y, font_name="Poppins", font_size=7, c
     spacing = spacing * fscale
     
     items = []
-    for key in ["email", "phone", "linkedin", "github", "portfolio"]:
+    for key in ["email", "phone", "location", "linkedin", "github", "portfolio"]:
         if cv_data.get(key):
             items.append(cv_data[key])
     
@@ -677,8 +677,12 @@ class _ClassicDark:
             c.setFillColor(cls.SIDEBAR_MUTED)
             c.drawString(SX, sy - 9 * _fscale, li.get("level", ""))
             dot_x = SIDEBAR_W - 14 - 45 * _fscale
+            try:
+                level_num = int(li.get("level_num", 4))
+            except:
+                level_num = 4
             for i in range(5):
-                c.setFillColor(cls.ACCENT if i < li.get("level_num", 4) else cls.SIDEBAR_BG2)
+                c.setFillColor(cls.ACCENT if i < level_num else cls.SIDEBAR_BG2)
                 c.circle(dot_x + i * 9 * _fscale, sy + 2 * _fscale, 3 * _fscale, fill=1, stroke=0)
             sy -= 22 * _fscale
         sy -= 4 * _fscale
@@ -945,8 +949,12 @@ class _CanvaMinimal:
                 c.setFillColor(cls.TEXT_LIGHT)
                 c.drawString(COL2_X, col2_y - 10 * _fscale, li.get("level", ""))
                 # Dot bar
+                try:
+                    level_num = int(li.get("level_num", 4))
+                except:
+                    level_num = 4
                 for i in range(5):
-                    c.setFillColor(cls.ACCENT if i < li.get("level_num", 4) else cls.DIVIDER)
+                    c.setFillColor(cls.ACCENT if i < level_num else cls.DIVIDER)
                     c.circle(COL2_X + COL2_W - 50 + i * 9 * _fscale, col2_y + 2 * _fscale, 3 * _fscale, fill=1, stroke=0)
                 col2_y -= 22 * _fscale
 
@@ -1373,6 +1381,27 @@ class _TechGrid:
                     c.drawString(tx + 5, my - 10 + (tag_h - 7) / 2 + 0.5, skill)
                     tx += sw_tag + 5
             my -= 20
+
+        # Languages
+        if cv_data.get("languages"):
+            if my < 80: my = new_page()
+            my = section_title(f"// {L['languages']}", my)
+            tx = MX
+            for li in cv_data["languages"]:
+                if my < 40: break
+                lang_text = f"{li.get('lang', '')} ({li.get('level', '')})"
+                sw_tag = c.stringWidth(lang_text, _f("Poppins", FF), 7) + 12
+                if tx + sw_tag > MX + MW:
+                    tx = MX
+                    my -= 19
+                    if my < 40: break
+                tag_h = 15
+                _draw_rect(c, tx, my - 10, sw_tag, tag_h, fill=cls.SURFACE2, stroke=cls.ACCENT2, radius=3, stroke_width=0.5)
+                c.setFont(_f("Poppins", FF), 7)
+                c.setFillColor(cls.ACCENT2)
+                c.drawString(tx + 5, my - 10 + (tag_h - 7) / 2 + 0.5, lang_text)
+                tx += sw_tag + 5
+            my -= 30
 
         # Footer
         _draw_rect(c, 0, 0, W, 20, fill=cls.SURFACE)
@@ -2157,10 +2186,6 @@ class _ModernProfile:
             c.line(25, y - 4 * _fscale, SIDEBAR_W - 25, y - 4 * _fscale)
             return y - 18 * _fscale
 
-        if cv_data.get("summary"):
-            sy = sidebar_section(L["summary"], sy)
-            sy = _draw_multiline(c, cv_data["summary"], 25, sy, "Poppins", 7.5, cls.TEXT_LIGHT, SIDEBAR_W - 50, 10, force_family=FF) - 15 * _fscale
-
         if cv_data.get("skills", {}).get("categories"):
             sy = sidebar_section(L["skills"], sy)
             for cat in cv_data["skills"]["categories"]:
@@ -2181,14 +2206,14 @@ class _ModernProfile:
             sy = sidebar_section(L["languages"], sy)
             for li in cv_data["languages"]:
                 if sy < 70: break
-                c.setFont(_f("Poppins-Medium", FF), 7)
-                c.setFillColor(HexColor("#FFFFFF"))
-                c.drawString(20, sy, li.get("lang", ""))
+                c.setFont(_f("Poppins-Medium", FF), 7.5)
+                c.setFillColor(cls.ACCENT)
+                c.drawString(25, sy, li.get("lang", ""))
                 c.setFont(_f("Poppins", FF), 6)
                 c.setFillColor(cls.TEXT_LIGHT)
-                c.drawString(20, sy - 8 * _fscale, li.get("level", ""))
+                c.drawString(25, sy - 8 * _fscale, li.get("level", ""))
                 sy -= 18 * _fscale
-        
+
         # Main content
         my = H - 40 * _fscale
         c.setFont(_f("Poppins-Bold", FF), 26)
@@ -2213,7 +2238,10 @@ class _ModernProfile:
                 my -= 11 * _fscale
                 c.setFont(_f("Poppins-Medium", FF), 8)
                 c.setFillColor(getattr(cls, 'ROLE_COLOR', cls.ACCENT2))
-                c.drawString(MAIN_X, my, exp.get("company", "") + " • " + exp.get("period", ""))
+                exp_line = exp.get("company", "")
+                if exp.get("location"): exp_line += "  •  " + exp["location"]
+                exp_line += "  •  " + exp.get("period", "")
+                c.drawString(MAIN_X, my, exp_line)
                 my -= 12 * _fscale
                 for bullet in exp.get("bullets", []):
                     if my < 100: break
@@ -2242,6 +2270,8 @@ class _ModernProfile:
                 c.setFillColor(cls.ACCENT2)
                 c.drawString(MAIN_X, my, edu.get("school", "") + " • " + edu.get("year", ""))
                 my -= 14 * _fscale
+
+        my -= 10 * _fscale
         
         c.save()
         return buf.getvalue()
