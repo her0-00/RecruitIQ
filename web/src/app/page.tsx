@@ -159,6 +159,7 @@ export default function Home() {
   };
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [atsKeywords, setAtsKeywords] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -251,6 +252,16 @@ export default function Home() {
       if (data.error) throw new Error(data.error);
 
       setAnalysisResult(data);
+
+      // Accumulate keywords implicitly (Merge old and new without duplicates)
+      const newKeywords = data.missing_keywords || [];
+      if (newKeywords.length > 0) {
+        setAtsKeywords(prev => {
+          const combined = [...prev, ...newKeywords];
+          return Array.from(new Set(combined));
+        });
+      }
+
       setEditedCvDataJSON(JSON.stringify(data._cv_data, null, 2));
       setPdfData(null);
     } catch (err: any) {
@@ -288,7 +299,11 @@ export default function Home() {
       const payload = {
         cv_data: {
           ...cvDataToUse,
-          profile_photo: profilePhoto || undefined,  // Add photo to payload
+          profile_photo: profilePhoto || undefined,
+          missing_keywords: Array.from(new Set([
+            ...(analysisResult?.missing_keywords || []),
+            ...atsKeywords
+          ])),
           custom_style: {
             accent_color: customAccent || undefined,
             text_color: customText || undefined,
@@ -1161,21 +1176,21 @@ export default function Home() {
         )}
 
         {/* PERSISTENT FOOTER - PROFESSIONAL PRIVACY SHIELD */}
-        <footer style={{ 
-          marginTop: '5rem', 
-          padding: '4rem 2rem', 
-          borderTop: '2px solid var(--border)', 
+        <footer style={{
+          marginTop: '5rem',
+          padding: '4rem 2rem',
+          borderTop: '2px solid var(--border)',
           background: 'var(--surface-subtle)',
           borderRadius: 'var(--r-lg) var(--r-lg) 0 0',
           position: 'relative'
         }}>
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-            
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              gap: '12px', 
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
               marginBottom: '2.5rem',
               color: 'var(--gold)'
             }}>
@@ -1186,21 +1201,21 @@ export default function Home() {
               </div>
             </div>
 
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-              gap: '2.5rem', 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '2.5rem',
               textAlign: 'left',
               marginBottom: '3rem'
             }}>
-              
+
               <div className="privacy-block">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem', color: 'var(--gold-bright)' }}>
                   <Lock size={18} />
                   <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Traitement Ephémère</h3>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text2)', lineHeight: '1.6' }}>
-                  <strong>Engagement 0-Day Retention :</strong> RecruitIQ opère exclusivement en mémoire vive (RAM). 
+                  <strong>Engagement 0-Day Retention :</strong> RecruitIQ opère exclusivement en mémoire vive (RAM).
                   Vos CV, photos et offres d'emploi ne sont jamais enregistrés dans une base de données persistante.
                   Une fois votre session fermée, les données sont atomiquement purgées.
                 </p>
@@ -1212,8 +1227,8 @@ export default function Home() {
                   <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Flux Sécurisés Cloud</h3>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text2)', lineHeight: '1.6' }}>
-                  <strong>Transit HTTPS/TLS :</strong> Vos données textuelles sont transmises via tunnel sécurisé aux API de <strong>Groq Cloud</strong> 
-                  pour l'analyse LLM. Les photos subissent un pré-traitement local sur notre instance temporaire, 
+                  <strong>Transit HTTPS/TLS :</strong> Vos données textuelles sont transmises via tunnel sécurisé aux API de <strong>Groq Cloud</strong>
+                  pour l'analyse LLM. Les photos subissent un pré-traitement local sur notre instance temporaire,
                   et tout fichier résiduel sur disque est supprimé immédiatement après encodage.
                 </p>
               </div>
@@ -1224,27 +1239,27 @@ export default function Home() {
                   <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Vos Droits RGPD</h3>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text2)', lineHeight: '1.6' }}>
-                  Conformément au règlement (UE) 2016/679, vous disposez d'un droit total d'accès, de rectification, 
-                  et d'effacement. L'absence de stockage persistant garantit un <strong>droit à l'oubli automatique</strong> 
+                  Conformément au règlement (UE) 2016/679, vous disposez d'un droit total d'accès, de rectification,
+                  et d'effacement. L'absence de stockage persistant garantit un <strong>droit à l'oubli automatique</strong>
                   par simple fermeture du navigateur. Votre clé API Groq reste locale à votre session.
                 </p>
               </div>
 
             </div>
 
-            <div style={{ 
-              borderTop: '1px solid var(--border)', 
+            <div style={{
+              borderTop: '1px solid var(--border)',
               paddingTop: '2rem',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '1rem'
             }}>
-              <div style={{ 
-                display: 'flex', 
-                gap: '2rem', 
-                fontSize: '0.62rem', 
-                color: 'var(--text3)', 
+              <div style={{
+                display: 'flex',
+                gap: '2rem',
+                fontSize: '0.62rem',
+                color: 'var(--text3)',
                 fontFamily: 'Space Mono, monospace',
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em'

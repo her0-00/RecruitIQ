@@ -62,7 +62,7 @@ Return ONLY this JSON:
 }
 Generate 4 variations style: Institutional, Modern, Minimalist, Bold. No preamble. No explanation.`;
 
-    const fallbackModels = ['moonshotai/kimi-k2-instruct', 'groq/compound', 'allam-2-7b'];
+    const fallbackModels = ['llama-3.3-70b-versatile', 'mixtral-8x7b-32768', 'llama-3.1-8b-instant'];
     let chatCompletion;
     let lastError;
 
@@ -74,7 +74,8 @@ Generate 4 variations style: Institutional, Modern, Minimalist, Bold. No preambl
             {
               role: 'user',
               content: `Senior Brand Designer Knowledge Retrieval: What are the primary, secondary and accent brand hex colors for "${cleanName}"? 
-Adapt them for 4 DISTINCT professional CV palettes: 1. Institutional, 2. Minimalist, 3. Bold, 4. Modern Dark.
+Note: the entity can be a company, but also an institution, university, NGO, organization, or country (e.g., France, Harvard, UNICEF).
+Adapt their official colors for 4 DISTINCT professional CV palettes: 1. Institutional, 2. Minimalist, 3. Bold, 4. Modern Dark.
 Return ONLY a valid JSON object: {"palettes": [{"name": "Style", "colors": {"primary": "#Hex", "secondary": "#Hex", "accent": "#Hex", "text": "#Hex", "background": "#Hex"}}]}.
 IMPORTANT: JSON ONLY. No preamble. No thinking.`
             }

@@ -34,3 +34,7 @@ test_output.pdf
 *.tar.gz
 *.iso
 *.png_large
+
+# Scratch and AI POCs
+scratch/
+search_debug.png

@@ -65,7 +65,10 @@ def main():
         if not isinstance(cv_data.get("languages"), list): cv_data["languages"] = []
         cv_data["languages"] = [l for l in cv_data["languages"] if isinstance(l, dict)]
         for li in cv_data["languages"]:
-            if not isinstance(li.get("level_num"), int): li["level_num"] = 3
+            try:
+                li["level_num"] = int(li.get("level_num", 3))
+            except (ValueError, TypeError):
+                li["level_num"] = 3
             if not isinstance(li.get("lang"), str): li["lang"] = ""
             if not isinstance(li.get("level"), str): li["level"] = ""
 

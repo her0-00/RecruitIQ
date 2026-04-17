@@ -102,7 +102,8 @@ def _get_labels(lang="fr") -> dict:
             "projects": "PROJETS",
             "certifications": "CERTIFICATIONS",
             "contact": "CONTACT",
-            "expertise": "EXPERTISE"
+            "expertise": "EXPERTISE",
+            "skills_lang": "COMPÉTENCES & LANGUES"
         },
         "en": {
             "experience": "PROFESSIONAL EXPERIENCE",
@@ -113,7 +114,8 @@ def _get_labels(lang="fr") -> dict:
             "projects": "PROJECTS",
             "certifications": "CERTIFICATIONS",
             "contact": "CONTACT INFO",
-            "expertise": "EXPERTISE"
+            "expertise": "EXPERTISE",
+            "skills_lang": "SKILLS & LANGUAGES"
         }
     }
     return labels.get(lang.lower(), labels["fr"])
@@ -142,6 +144,57 @@ def _sanitize_text(text: str) -> str:
     return text
 
 
+# ── ATS OPTIMIZATIONS (STEALTH MODE) ──────────────────────────────────
+
+def _draw_ats_hidden_keywords(c, cv_data, bg_color=None):
+    """
+    Inject a 'keyword cloud' of high-value terms in the margin.
+    Uses 1pt font in background color to be invisible to humans but
+    guaranteed visible to ATS scrapers and Ctrl+A.
+    """
+    from reportlab.lib.colors import HexColor
+    from reportlab.lib.pagesizes import A4
+    W, H = A4
+    
+    # Fallback to pure white if no theme background is provided
+    bg_color = bg_color or HexColor("#FFFFFF")
+    
+    # 1. Prioritize missing keywords from audit
+    keywords = cv_data.get("missing_keywords", [])
+    
+    # 2. Fallback: Inject the CV's own skills 
+    if not keywords:
+        skills = cv_data.get("skills", [])
+        if isinstance(skills, list):
+            for s in skills:
+                if isinstance(s, dict):
+                    keywords.extend(s.get("items", []))
+                elif isinstance(s, str):
+                    keywords.append(s)
+
+    if not keywords:
+        return
+        
+    fscale = getattr(c, "_fscale", 1.0)
+    
+    # STEALTH MODE: 1pt font, Invisible rendering mode + matching color
+    # Placed in the middle-left margin (almost always on main body background)
+    to = c.beginText(5, H / 2)
+    to.setFont("Helvetica", 1) 
+    to.setTextRenderMode(3) # Mode 3 = Invisible (no fill, no stroke)
+    c.setFillColor(bg_color) 
+    c.setFillAlpha(0.01)     # Nearly zero opacity as extra layer
+    
+    # Draw cloud
+    chunk_size = 8
+    for i in range(0, len(keywords), chunk_size):
+        chunk = " ".join(keywords[i:i+chunk_size])
+        to.textLine(chunk)
+        
+    c.drawText(to)
+    c.setFillAlpha(1.0) # Reset
+
+
 # ── HYPERLINK PARSING ──────────────────────────────────────────────
 _LINK_RE = re.compile(r'^(.+?)\[(https?://[^\]]+)\]$')
 
@@ -150,10 +203,24 @@ def _parse_link(text: str):
     """Parse 'Label[https://url]' → (label, url) or (text, None)."""
     if not text:
         return (text, None)
-    m = _LINK_RE.match(text.strip())
+    t = text.strip()
+    
+    # 1. Standard bracketed format: Label[https://url]
+    m = _LINK_RE.match(t)
     if m:
         return (m.group(1).strip(), m.group(2).strip())
-    return (text, None)
+    
+    # 2. Bare URLs starting with http
+    if t.startswith(('http://', 'https://')):
+        return (t, t)
+        
+    # 3. Detect common professional links even without http prefix
+    low = t.lower()
+    if any(p in low for p in ['linkedin.com/', 'github.com/', 'portfolio.', 'bit.ly/', 'me.io/']):
+        url = t if t.startswith('http') else 'https://' + t
+        return (t, url)
+        
+    return (t, None)
 
 
 def _draw_link(c, x, y, label, url, font, size, color, underline=True, force_family=None):
@@ -161,25 +228,74 @@ def _draw_link(c, x, y, label, url, font, size, color, underline=True, force_fam
     fn = _f(font, force_family=force_family)
     c.setFont(fn, size)
     c.setFillColor(color)
+    
+    # 1. Standard visible text
     c.drawString(x, y, label)
     w = c.stringWidth(label, fn, size)
+    
+    # 2. ATS-Proofing: Inject Label + URL as invisible text into the PDF footer area
+    # This helps ATS systems map the links to the correct database fields.
+    if not hasattr(c, '_ats_link_x'):
+        c._ats_link_x = 30
+    
+    # Map to standard ATS field labels
+    low_url = url.lower()
+    ats_prefix = ""
+    if "linkedin.com" in low_url: ats_prefix = "LinkedIn URL: "
+    elif "github.com" in low_url: ats_prefix = "GitHub URL: "
+    elif "twitter.com" in low_url: ats_prefix = "Twitter URL: "
+    elif "scholar.google" in low_url: ats_prefix = "Google Scholar URL: "
+    elif any(p in low_url for p in ["portfolio", "behance", "dribbble", "me.io"]): 
+        ats_prefix = "Design Portfolio URL: "
+    
+    full_ats_text = f"{ats_prefix}{url} "
+    
+    to = c.beginText(c._ats_link_x, 15) 
+    to.setFont(fn, 6)
+    to.setTextRenderMode(3) # 3 = Invisible
+    to.textOut(full_ats_text)
+    to.setTextRenderMode(0) 
+    c.drawText(to)
+    
+    # Update tracking X for next link
+    c._ats_link_x += c.stringWidth(full_ats_text, fn, 6)
+    
     if underline:
         c.setStrokeColor(color)
         c.setLineWidth(0.4)
         c.line(x, y - 1.5, x + w, y - 1.5)
-    # Create clickable annotation rect (x1, y1, x2, y2)
+    
+    # 3. Clickable annotation rect
     c.linkURL(url, (x, y - 2, x + w, y + size), relative=0)
     return w
+
+
+def _get_luminance(color):
+    """Calculate relative luminance of a ReportLab color."""
+    return 0.2126 * color.red + 0.7152 * color.green + 0.0722 * color.blue
+
+
+def _ensure_contrast(fg_color, bg_color, min_ratio=4.0):
+    """Adjust foreground color to ensure minimum contrast against background."""
+    l1 = _get_luminance(fg_color)
+    l2 = _get_luminance(bg_color)
+    # Contrast ratio = (L1 + 0.05) / (L2 + 0.05)
+    ratio = (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
+
+    if ratio < min_ratio:
+        # If background is dark, return white. Otherwise black.
+        return HexColor("#FFFFFF") if l2 < 0.5 else HexColor("#1A1A1A")
+    return fg_color
 
 
 def _apply_custom_style(cls, cv_data):
     """Apply granular custom_style overrides from cv_data onto a theme class copy."""
     import types
     style = cv_data.get("custom_style", {})
-    
+
     # Filter out None and empty string values
     style = {k: v for k, v in style.items() if v}
-    
+
     if not style:
         return cls, 1.0
 
@@ -195,27 +311,33 @@ def _apply_custom_style(cls, cv_data):
         setattr(ns, "FONT_OVERRIDE", style["font_family"])
     else:
         setattr(ns, "FONT_OVERRIDE", None)
-        
+
     setattr(ns, "LANG", cv_data.get("lang", "fr"))
+
+    # 1. Backgrounds
     if style.get("main_bg"):
         try:
             col = HexColor(style["main_bg"])
             for a in ['BODY_BG', 'BG']:
                 if hasattr(ns, a): setattr(ns, a, col)
         except: pass
-    
+
     if style.get("sidebar_bg"):
         try:
             col = HexColor(style["sidebar_bg"])
             for a in ['SIDEBAR_BG', 'SIDEBAR_BG2', 'SURFACE', 'SURFACE2']:
                 if hasattr(ns, a): setattr(ns, a, col)
         except: pass
-    
+
     if style.get("header_bg"):
         try:
             col = HexColor(style["header_bg"])
             if hasattr(ns, 'HEADER_BG'): setattr(ns, 'HEADER_BG', col)
         except: pass
+
+    # Current background for contrast checks (main body)
+    body_bg = getattr(ns, 'BODY_BG', getattr(ns, 'BG', HexColor("#FFFFFF")))
+    sidebar_bg = getattr(ns, 'SIDEBAR_BG', body_bg)
 
     # 2. Colors - General Accent (Lines, Dots, etc.)
     if style.get("accent_color"):
@@ -223,8 +345,9 @@ def _apply_custom_style(cls, cv_data):
             acc = HexColor(style["accent_color"])
             # Aggressively override common accent keys
             # TAG_BG is EXCLUDED here to prevent text/bg color collision in Medical/Canva themes
+            # DIVIDER is EXCLUDED here to prevent language level dots from appearing all filled
             for a in ['ACCENT', 'ACCENT_LIGHT', 'ACCENT_DARK', 'ACCENT2', 'ACCENT3', 
-                      'TAG_BORDER', 'BORDER', 'DIVIDER']:
+                      'TAG_BORDER', 'BORDER']:
                 if hasattr(ns, a): setattr(ns, a, acc)
         except: pass
 
@@ -232,9 +355,17 @@ def _apply_custom_style(cls, cv_data):
     if style.get("text_color"):
         try:
             col = HexColor(style["text_color"])
-            for a in ['TEXT', 'TEXT_DARK', 'TEXT_MED', 'TEXT_LIGHT', 'SIDEBAR_TEXT', 'SIDEBAR_MUTED', 'BODY_TEXT']:
+            # Enforce contrast against main background
+            col = _ensure_contrast(col, body_bg)
+
+            for a in ['TEXT', 'TEXT_DARK', 'TEXT_MED', 'TEXT_LIGHT', 'BODY_TEXT']:
                 if hasattr(ns, a): setattr(ns, a, col)
             setattr(ns, 'CONTACT_COLOR', col)
+
+            # Sidebar text contrast check
+            scol = _ensure_contrast(col, sidebar_bg)
+            for a in ['SIDEBAR_TEXT', 'SIDEBAR_MUTED']:
+                if hasattr(ns, a): setattr(ns, a, scol)
         except: pass
 
     # 4. Specific Typography (Applied last to override general settings)
@@ -242,6 +373,7 @@ def _apply_custom_style(cls, cv_data):
         # This is "Post / Roles" in the frontend
         try:
             col = HexColor(style["subheading_color"])
+            col = _ensure_contrast(col, body_bg)
             setattr(ns, 'TITLE_COLOR', col)
             setattr(ns, 'ROLE_COLOR', col)
             setattr(ns, 'ACCENT_DARK', col)
@@ -460,6 +592,20 @@ def _draw_wrapped_contact(c, cv_data, x, y, max_w, font_name="Poppins", font_siz
             curr_x += sep_w
 
         if not dry_run:
+            # ATS Semantic Labeling (Invisible)
+            ats_label = ""
+            if key == "email": ats_label = "Email: "
+            elif key == "phone": ats_label = "Phone: "
+            elif key == "location": ats_label = "Location: "
+            
+            if ats_label:
+                to = c.beginText(curr_x, curr_y)
+                to.setFont(_f(font_name, force_family=force_family), font_size)
+                to.setTextRenderMode(3) # Invisible
+                to.textOut(ats_label)
+                to.setTextRenderMode(0)
+                c.drawText(to)
+
             if url:
                 curr_x += _draw_link(c, curr_x, curr_y, label, url, font_name, font_size, color, force_family=force_family)
             else:
@@ -483,11 +629,25 @@ def _draw_vertical_contact(c, cv_data, x, y, font_name="Poppins", font_size=7, c
     items = []
     for key in ["email", "phone", "location", "linkedin", "github", "portfolio"]:
         if cv_data.get(key):
-            items.append(cv_data[key])
+            items.append((key, cv_data[key]))
     
     curr_y = y
-    for val in items:
+    for key, val in items:
         label, url = _parse_link(val)
+        
+        # ATS Semantic Labeling (Invisible)
+        ats_label = ""
+        if key == "email": ats_label = "Email: "
+        elif key == "phone": ats_label = "Phone: "
+        elif key == "location": ats_label = "Location: "
+        if ats_label:
+            to = c.beginText(x, curr_y)
+            to.setFont(_f(font_name, force_family=force_family), font_size)
+            to.setTextRenderMode(3)
+            to.textOut(ats_label)
+            to.setTextRenderMode(0)
+            c.drawText(to)
+
         if url:
             _draw_link(c, x, curr_y, label, url, font_name, font_size, color, force_family=force_family)
         else:
@@ -528,31 +688,45 @@ def _draw_wrapped_centred_contact(c, cv_data, cx, y, max_w, font_name="Poppins",
         needed = item_w + (sep_w if current_line else 0)
         if curr_w + needed > max_w and current_line:
             lines.append(current_line)
-            current_line = [(label, url, item_w)]
+            current_line = [(key, label, url, item_w)]
             curr_w = item_w
         else:
-            current_line.append((label, url, item_w))
+            current_line.append((key, label, url, item_w))
             curr_w += needed
     if current_line:
         lines.append(current_line)
 
     curr_y = y
     for line in lines:
-        row_w = sum([it[2] for it in line]) + (sep_w * (len(line) - 1))
+        row_w = sum([it[3] for it in line]) + (sep_w * (len(line) - 1))
         lx = cx - row_w / 2
-        for j, (label, url, item_w) in enumerate(line):
+        for j, (key, label, url, item_w) in enumerate(line):
             if j > 0:
                 c.setFont(_f(font_name, force_family=force_family), font_size)
                 c.setFillColor(color)
                 c.drawString(lx, curr_y, sep)
                 lx += sep_w
             
-            c.setFont(_f(font_name, force_family=force_family), font_size)
-            c.setFillColor(color)
-            c.drawString(lx, curr_y, label)
+            # ATS Semantic Labeling (Invisible)
+            ats_label = ""
+            if key == "email": ats_label = "Email: "
+            elif key == "phone": ats_label = "Phone: "
+            elif key == "location": ats_label = "Location: "
+            if ats_label:
+                to = c.beginText(lx, curr_y)
+                to.setFont(_f(font_name, force_family=force_family), font_size)
+                to.setTextRenderMode(3)
+                to.textOut(ats_label)
+                to.setTextRenderMode(0)
+                c.drawText(to)
+
             if url:
-                c.linkURL(url, (lx, curr_y - 2, lx + item_w, curr_y + font_size), relative=0)
-            lx += item_w
+                lx += _draw_link(c, lx, curr_y, label, url, font_name, font_size, color, force_family=force_family)
+            else:
+                c.setFont(_f(font_name, force_family=force_family), font_size)
+                c.setFillColor(color)
+                c.drawString(lx, curr_y, label)
+                lx += item_w
         curr_y -= (font_size * fscale + 4)
         
     return curr_y - 6
@@ -786,6 +960,7 @@ class _ClassicDark:
         c.setFont(_f("Poppins", FF), 6.5)
         c.setFillColor(cls.SIDEBAR_MUTED)
         c.drawCentredString(W / 2, 14, name + "  ·  CV  ·  1")
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -978,6 +1153,7 @@ class _CanvaMinimal:
         c.setFillColor(HexColor("#FFFFFF"))
         c.drawCentredString(W / 2, 8, name + "  ·  CV")
 
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -1013,7 +1189,8 @@ class _NordicClean:
         def new_page():
             c.showPage()
             _draw_rect(c, 0, 0, W, H, fill=cls.BG)
-            return H - 50
+            _draw_rect(c, 0, H - 6, W, 6, fill=cls.ACCENT) # Keep accent bar on new pages
+            return H - 40
 
         _draw_rect(c, 0, 0, W, H, fill=cls.BG)
 
@@ -1073,6 +1250,8 @@ class _NordicClean:
         my = HEADER_BOT - 25
 
         def section_title(t, y):
+            # Check for page space before drawing section title
+            if y < 80 * _fscale: y = new_page()
             _draw_rect(c, MX - 14, y - 2 * _fscale, 4, 14 * _fscale, fill=cls.ACCENT)
             _spaced_string(c, MX, y, t.upper(), "Poppins-Bold", 9, getattr(cls, 'SECTION_TITLE_COLOR', cls.TEXT_DARK), 1.2, force_family=FF)
             c.setStrokeColor(cls.DIVIDER)
@@ -1080,20 +1259,18 @@ class _NordicClean:
             c.line(MX, y - 5 * _fscale, MX + MW, y - 5 * _fscale)
             return y - 20 * _fscale
 
-        # Summary with scaled offset
+        # Summary 
         if cv_data.get("summary"):
             my = section_title(L["summary"], my)
-            # Accent underline sits below the section title, above the body text
             _draw_rect(c, MX - 14, my + 6 * _fscale, MW + 14, 1, fill=cls.ACCENT2)
-            my -= 4 * _fscale  # gap between bar and text
+            my -= 4 * _fscale  
             my = _draw_multiline(c, cv_data["summary"], MX, my, "Lora-Italic", 9.5, cls.TEXT_MED, MW, 14, force_family=FF) - 18 * _fscale
 
         # Experience
         if cv_data.get("experiences"):
             my = section_title(L["experience"], my)
             for exp in cv_data["experiences"]:
-                if my < 120: my = new_page()
-                # Timeline dot — centered on role text line
+                if my < 80 * _fscale: my = new_page()
                 _draw_rect(c, MX - 18, my + 0.5 * _fscale, 7 * _fscale, 7 * _fscale, fill=cls.ACCENT, radius=3.5 * _fscale)
                 c.setFont(_f("Poppins-Bold", FF), 10.5)
                 c.setFillColor(getattr(cls, 'ROLE_COLOR', cls.TEXT_DARK))
@@ -1109,16 +1286,15 @@ class _NordicClean:
                 c.drawString(MX, my, comp)
                 my -= 14 * _fscale
                 for bullet in exp.get("bullets", []):
-                    if my < 100: my = new_page()
+                    if my < 50 * _fscale: my = new_page()
                     bullet_y = my
-                    # Vertical guide line with scaling
                     bullet_h = _multiline_height(c, bullet, "Poppins", 8.2, MW - 14, 12, force_family=FF)
                     c.setStrokeColor(cls.ACCENT)
                     c.setLineWidth(1)
                     c.line(MX + 2, bullet_y + 6 * _fscale, MX + 2, bullet_y - bullet_h + 12 * _fscale)
                     my = _draw_multiline(c, bullet, MX + 10, bullet_y, "Poppins", 8.2, cls.TEXT_MED, MW - 14, 12, force_family=FF) - 2 * _fscale
                 my -= 10 * _fscale
-                if my > 100:
+                if my > 100 * _fscale:
                     c.setStrokeColor(cls.DIVIDER)
                     c.setLineWidth(0.5)
                     c.setDash(3, 4)
@@ -1128,10 +1304,9 @@ class _NordicClean:
 
         # Education
         if cv_data.get("education"):
-            if my < 140: my = new_page()
             my = section_title(L["education"], my)
             for edu in cv_data["education"]:
-                if my < 100: my = new_page()
+                if my < 60 * _fscale: my = new_page()
                 _draw_rect(c, MX - 18, my + 0.5 * _fscale, 7 * _fscale, 7 * _fscale, fill=cls.ACCENT2, radius=3.5 * _fscale)
                 c.setFont(_f("Poppins-Bold", FF), 9.5)
                 c.setFillColor(cls.TEXT_DARK)
@@ -1149,24 +1324,68 @@ class _NordicClean:
                 else:
                     my -= 16 * _fscale
 
-        # Skills + Languages bottom row
-        if my < 160: my = new_page()
-        my = section_title(L["skills_lang"], my)
-        tx = MX
-        for cat in cv_data.get("skills", {}).get("categories", []):
-            c.setFont(_f("Poppins-Bold", FF), 7.5)
-            c.setFillColor(cls.TEXT_DARK)
-            c.drawString(tx, my, cat.get("name", ""))
-            ty = my - 12 * _fscale
-            for skill in cat.get("items", []):
-                sw_tag = c.stringWidth(skill, _f("Poppins", FF), 7) + 12
-                tag_h = 15 * _fscale
-                _draw_rect(c, tx, ty - 10 * _fscale, sw_tag, tag_h, fill=cls.TAG_BG, stroke=cls.ACCENT2, radius=4 * _fscale, stroke_width=0.5)
+        # Skills + Languages
+        if cv_data.get("skills", {}).get("categories"):
+            my = section_title(L["skills_lang"], my)
+            tx = MX
+            min_ty = my
+            for cat in cv_data["skills"]["categories"]:
+                if my < 50 * _fscale: 
+                    my = new_page()
+                    my = section_title(L["skills_lang"], my)
+                    tx = MX
+                c.setFont(_f("Poppins-Bold", FF), 7.5)
+                c.setFillColor(cls.TEXT_DARK)
+                c.drawString(tx, my, cat.get("name", ""))
+                ty = my - 12 * _fscale
+                for skill in cat.get("items", []):
+                    if ty < 40 * _fscale: break # Stop column if page ends
+                    sw_tag = c.stringWidth(skill, _f("Poppins", FF), 7) + 12
+                    tag_h = 15 * _fscale
+                    _draw_rect(c, tx, ty - 10 * _fscale, sw_tag, tag_h, fill=cls.TAG_BG, stroke=cls.ACCENT2, radius=4 * _fscale, stroke_width=0.5)
+                    c.setFont(_f("Poppins", FF), 7)
+                    c.setFillColor(cls.ACCENT)
+                    c.drawString(tx + 5, ty - 10 * _fscale + (tag_h - 7 * _fscale) / 2 + 0.5 * _fscale, skill)
+                    ty -= 19 * _fscale
+                if ty < min_ty: min_ty = ty
+                tx += (MW // 3) + 10
+            my = min_ty - 20 * _fscale
+
+        # Languages
+        if cv_data.get("languages"):
+            my = section_title(L["languages"], my)
+            tx = MX
+            for li in cv_data["languages"]:
+                if my < 50 * _fscale: 
+                    my = new_page()
+                    my = section_title(L["languages"], my)
+                    tx = MX
+                lang_text = f"{li.get('lang', '')} ({li.get('level', '')})"
+                sw_tag = c.stringWidth(lang_text, _f("Poppins", FF), 7) + 12
+                if tx + sw_tag + 55 * _fscale > MX + MW:
+                    tx = MX
+                    my -= 24 * _fscale
+                    if my < 50 * _fscale: 
+                        my = new_page()
+                        my = section_title(L["languages"], my)
+                
+                tag_h = 16 * _fscale
+                try: level_num = int(li.get("level_num", 3))
+                except: level_num = 3
+                
+                _draw_rect(c, tx, my - 10 * _fscale, sw_tag, tag_h, fill=cls.TAG_BG, stroke=cls.ACCENT2, radius=4 * _fscale, stroke_width=0.5)
                 c.setFont(_f("Poppins", FF), 7)
                 c.setFillColor(cls.ACCENT)
-                c.drawString(tx + 5, ty - 10 * _fscale + (tag_h - 7 * _fscale) / 2 + 0.5 * _fscale, skill)
-                ty -= 19 * _fscale
-            tx += (MW // 3) + 10
+                c.drawString(tx + 5, my - 10 * _fscale + (tag_h - 7 * _fscale) / 2 + 0.5 * _fscale, lang_text)
+                
+                # Proficiency dots
+                dot_x = tx + sw_tag + 6 * _fscale
+                for i in range(5):
+                    c.setFillColor(cls.ACCENT if i < level_num else cls.DIVIDER)
+                    c.circle(dot_x + i * 7 * _fscale, my - 2 * _fscale, 2 * _fscale, fill=1, stroke=0)
+                
+                tx += sw_tag + 55 * _fscale
+            my -= 25 * _fscale
 
         # Footer
         _draw_rect(c, 0, 0, W, 20, fill=cls.HEADER_BG)
@@ -1174,6 +1393,7 @@ class _NordicClean:
         c.setFillColor(cls.ACCENT2)
         c.drawCentredString(W / 2, 7, name + "  ·  CV")
 
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -1364,44 +1584,53 @@ class _TechGrid:
                 my -= 14 * _fscale
 
         # Skills as inline tags
+        if cv_data.get("skills", {}).get("categories"):
             my = section_title(f"// {L['skills']}", my)
             tx = MX
             for cat in cv_data["skills"]["categories"]:
                 for skill in cat.get("items", []):
-                    if my < 40: break
+                    if my < 50 * _fscale: 
+                        my = new_page()
+                        tx = MX
                     sw_tag = c.stringWidth(skill, _f("Poppins", FF), 7) + 12
                     if tx + sw_tag > MX + MW:
                         tx = MX
-                        my -= 19
-                        if my < 40: break
-                    tag_h = 15
-                    _draw_rect(c, tx, my - 10, sw_tag, tag_h, fill=cls.SURFACE2, stroke=cls.ACCENT, radius=3, stroke_width=0.5)
+                        my -= 19 * _fscale
+                        if my < 50 * _fscale: 
+                            my = new_page()
+                            tx = MX
+                    tag_h = 15 * _fscale
+                    _draw_rect(c, tx, my - 10 * _fscale, sw_tag, tag_h, fill=cls.SURFACE2, stroke=cls.ACCENT, radius=3, stroke_width=0.5)
                     c.setFont(_f("Poppins", FF), 7)
                     c.setFillColor(cls.ACCENT)
-                    c.drawString(tx + 5, my - 10 + (tag_h - 7) / 2 + 0.5, skill)
-                    tx += sw_tag + 5
-            my -= 20
+                    c.drawString(tx + 5, my - 10 * _fscale + (tag_h - 7 * _fscale) / 2 + 0.5 * _fscale, skill)
+                    tx += sw_tag + 5 * _fscale
+            my -= 20 * _fscale
 
         # Languages
         if cv_data.get("languages"):
-            if my < 80: my = new_page()
+            if my < 80 * _fscale: my = new_page()
             my = section_title(f"// {L['languages']}", my)
             tx = MX
             for li in cv_data["languages"]:
-                if my < 40: break
+                if my < 45 * _fscale: 
+                    my = new_page()
+                    tx = MX
                 lang_text = f"{li.get('lang', '')} ({li.get('level', '')})"
                 sw_tag = c.stringWidth(lang_text, _f("Poppins", FF), 7) + 12
                 if tx + sw_tag > MX + MW:
                     tx = MX
-                    my -= 19
-                    if my < 40: break
-                tag_h = 15
-                _draw_rect(c, tx, my - 10, sw_tag, tag_h, fill=cls.SURFACE2, stroke=cls.ACCENT2, radius=3, stroke_width=0.5)
+                    my -= 19 * _fscale
+                    if my < 45 * _fscale: 
+                        my = new_page()
+                        tx = MX
+                tag_h = 16 * _fscale
+                _draw_rect(c, tx, my - 10 * _fscale, sw_tag, tag_h, fill=cls.SURFACE2, stroke=cls.ACCENT2, radius=3, stroke_width=0.5)
                 c.setFont(_f("Poppins", FF), 7)
                 c.setFillColor(cls.ACCENT2)
-                c.drawString(tx + 5, my - 10 + (tag_h - 7) / 2 + 0.5, lang_text)
-                tx += sw_tag + 5
-            my -= 30
+                c.drawString(tx + 5, my - 10 * _fscale + (tag_h - 7 * _fscale) / 2 + 0.5 * _fscale, lang_text)
+                tx += sw_tag + 5 * _fscale
+            my -= 30 * _fscale
 
         # Footer
         _draw_rect(c, 0, 0, W, 20, fill=cls.SURFACE)
@@ -1409,6 +1638,7 @@ class _TechGrid:
         c.setFillColor(cls.TEXT_MED)
         c.drawCentredString(W / 2, 7, "// " + name + " · CV · 2026")
 
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -1589,6 +1819,7 @@ class _LuxurySerif:
         c.setFillColor(cls.TEXT_LIGHT)
         c.drawCentredString(W / 2, 8, name + "  ◆  CV")
 
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -2118,6 +2349,7 @@ class _ExecutivePortrait:
                 c.drawString(MX + 80, my, li.get("level", ""))
                 my -= 12 * _fscale
         
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -2273,6 +2505,7 @@ class _ModernProfile:
 
         my -= 10 * _fscale
         
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -2326,76 +2559,90 @@ class _CreativeVision:
         
         # Name & Title (right of photo)
         name_x = MX + PHOTO_SIZE + 25
+        name_y = H - 45 * _fscale
         c.setFont(_f("Poppins-Bold", FF), 26)
         c.setFillColor(getattr(cls, 'NAME_COLOR', HexColor("#FFFFFF")))
-        c.drawString(name_x, H - 45, cv_data.get("name", ""))
+        c.drawString(name_x, name_y, cv_data.get("name", ""))
         
+        title_y = name_y - 20 * _fscale
         c.setFont(_f("Poppins-Light", FF), 12)
         c.setFillColor(getattr(cls, 'TITLE_COLOR', HexColor("#FFFFFF")))
-        c.drawString(name_x, H - 65, cv_data.get("title", ""))
+        c.drawString(name_x, title_y, cv_data.get("title", ""))
         
-        # Contact
-        _draw_wrapped_contact(c, cv_data, name_x, H - 90, W - name_x - 45, "Poppins", 7, getattr(cls, 'CONTACT_COLOR', HexColor("#FFFFFF")))
+        # Contact info follows title
+        contact_y = title_y - 20 * _fscale
+        contact_end_y = _draw_wrapped_contact(c, cv_data, name_x, contact_y, W - name_x - 45, "Poppins", 7, getattr(cls, 'CONTACT_COLOR', HexColor("#FFFFFF")), force_family=FF)
         
-        # Content
-        my = H - 150
+        # Content starts below the contact info with safety margin
+        my = min(contact_end_y - 30 * _fscale, H - 150 * _fscale)
         
+        def new_page():
+            c.showPage()
+            _draw_rect(c, 0, 0, W, H, fill=cls.BG)
+            # Simple accent strip for brand continuity on new pages
+            _draw_rect(c, 0, H - 10, W, 10, fill=cls.ACCENT)
+            return H - 40
+
         def creative_section(title, y):
+            if y < 100 * _fscale: y = new_page()
             c.setFont(_f("Poppins-Bold", FF), 10)
             c.setFillColor(getattr(cls, 'SECTION_TITLE_COLOR', cls.ACCENT2))
             c.drawString(MX, y, title)
             c.setStrokeColor(getattr(cls, 'SECTION_TITLE_COLOR', cls.ACCENT))
             c.setLineWidth(3)
             c.line(MX, y - 5, MX + 80, y - 5)
-            return y - 20
+            return y - 20 * _fscale
         
         if cv_data.get("summary"):
             my = creative_section("À PROPOS", my)
-            my = _draw_multiline(c, cv_data["summary"], MX, my, "Poppins", 9, cls.TEXT_MED, MW, 13, force_family=FF) - 18
+            my = _draw_multiline(c, cv_data["summary"], MX, my, "Poppins", 9, cls.TEXT_MED, MW, 13, force_family=FF) - 18 * _fscale
         
-        # Experience with creative bullets
+        # Experience 
         if cv_data.get("experiences"):
             my = creative_section("EXPÉRIENCE", my)
             for exp in cv_data["experiences"]:
+                if my < 80 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 10)
                 c.setFillColor(getattr(cls, 'ROLE_COLOR', cls.TEXT_DARK))
                 c.drawString(MX, my, exp.get("role", ""))
-                my -= 11
+                my -= 11 * _fscale
                 c.setFont(_f("Poppins-Medium", FF), 8)
                 c.setFillColor(getattr(cls, 'ROLE_COLOR', cls.ACCENT))
                 c.drawString(MX, my, exp.get("company", "") + " | " + exp.get("period", ""))
-                my -= 12
+                my -= 12 * _fscale
                 for bullet in exp.get("bullets", []):
+                    if my < 40 * _fscale: my = new_page()
                     bullet_y = my
                     c.setFillColor(cls.ACCENT3)
                     c.rect(MX, bullet_y + 1.5 * _fscale, 4, 4, fill=1, stroke=0)
-                    my = _draw_multiline(c, bullet, MX + 10, bullet_y, "Poppins", 8, cls.TEXT_MED, MW - 12, 11, force_family=FF) - 2
-                my -= 10
+                    my = _draw_multiline(c, bullet, MX + 10, bullet_y, "Poppins", 8, cls.TEXT_MED, MW - 12, 11, force_family=FF) - 2 * _fscale
+                my -= 10 * _fscale
         
         # Education
-        if cv_data.get("education") and my > 100:
+        if cv_data.get("education"):
             my = creative_section("ÉDUCATION", my)
             for edu in cv_data["education"]:
-                if my < 80: break
+                if my < 60 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 9)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, edu.get("degree", ""))
-                my -= 10
+                my -= 10 * _fscale
                 c.setFont(_f("Poppins-Medium", FF), 8)
                 c.setFillColor(cls.ACCENT)
                 c.drawString(MX, my, edu.get("school", "") + " | " + edu.get("year", ""))
-                my -= 14
+                my -= 14 * _fscale
         
         # Languages
-        if cv_data.get("languages") and my > 80:
+        if cv_data.get("languages"):
             my = creative_section("LANGUES", my)
             for li in cv_data["languages"]:
-                if my < 60: break
+                if my < 40 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Medium", FF), 8)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, li.get("lang", "") + " — " + li.get("level", ""))
-                my -= 12
+                my -= 12 * _fscale
         
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -2526,6 +2773,7 @@ class _ConsultantPremium:
         # COL2 & COL3: Experience (split across columns)
         if cv_data.get("experiences"):
             col2_y = col_title(COL2_X, col2_y, "Expérience")
+            col3_y = col2_y
             for i, exp in enumerate(cv_data["experiences"]):
                 # Alternate between col2 and col3
                 if i % 2 == 0:
@@ -2576,6 +2824,7 @@ class _ConsultantPremium:
                 c.drawString(COL1_X, col1_y, edu.get("school", "")[:20])
                 col1_y -= 12 * _fscale
         
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -2697,6 +2946,7 @@ class _CorporateElite:
                 c.drawString(MX + 80, my, li.get("level", ""))
                 my -= 12 * _fscale
         
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -2835,6 +3085,7 @@ class _MinimalistPro:
                 c.drawString(MX, my, li.get("lang", "") + " — " + li.get("level", ""))
                 my -= 12 * _fscale
         
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 
@@ -2869,6 +3120,13 @@ class _InternationalProfile:
         _draw_rect(c, 0, 0, SIDEBAR_W, H, fill=cls.SIDEBAR_BG)
         _draw_rect(c, SIDEBAR_W - 5, 0, 5, H, fill=cls.ACCENT)
         
+        def new_page():
+            c.showPage()
+            _draw_rect(c, 0, 0, W, H, fill=cls.BG)
+            _draw_rect(c, 0, 0, SIDEBAR_W, H, fill=cls.SIDEBAR_BG)
+            _draw_rect(c, SIDEBAR_W - 5, 0, 5, H, fill=cls.ACCENT)
+            return H - 50
+
         # Photo carrée en haut sidebar
         photo = cv_data.get("profile_photo")
         PHOTO_SIZE = 130 * _fscale
@@ -2879,6 +3137,7 @@ class _InternationalProfile:
         sy = H - PHOTO_SIZE - 55 * _fscale
         
         def sidebar_title(t, y):
+            if y < 60 * _fscale: y = new_page()
             c.setFont(_f("Poppins-Bold", FF), 8)
             c.setFillColor(getattr(cls, 'SECTION_TITLE_COLOR', cls.ACCENT))
             c.drawString(15, y, t.upper())
@@ -2890,9 +3149,9 @@ class _InternationalProfile:
         if cv_data.get("skills", {}).get("categories"):
             sy = sidebar_title(L["skills"], sy)
             for cat in cv_data["skills"]["categories"]:
-                if sy < 90: break
+                if sy < 50 * _fscale: sy = new_page()
                 for skill in cat.get("items", []):
-                    if sy < 80: break
+                    if sy < 40 * _fscale: sy = new_page()
                     c.setFont(_f("Poppins", FF), 7)
                     c.setFillColor(cls.TEXT_DARK)
                     c.drawString(15, sy, skill[:18])
@@ -2906,14 +3165,23 @@ class _InternationalProfile:
             sy -= 8 * _fscale
             sy = sidebar_title(L["languages"], sy)
             for li in cv_data["languages"]:
-                if sy < 60: break
-                c.setFont(_f("Poppins-Bold"), 7.5)
+                if sy < 80 * _fscale: sy = new_page()
+                c.setFont(_f("Poppins-Bold", FF), 7.5)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(15, sy, li.get("lang", ""))
+                
+                try: level_num = int(li.get("level_num", 3))
+                except: level_num = 3
+                
+                bar_w = SIDEBAR_W - 30
+                bar_y = sy - 11 * _fscale
+                _draw_rect(c, 15, bar_y, bar_w, 3 * _fscale, fill=HexColor("#E2E8F0"))
+                _draw_rect(c, 15, bar_y, bar_w * (level_num / 5.0), 3 * _fscale, fill=getattr(cls, 'SECTION_TITLE_COLOR', cls.ACCENT))
+                
                 c.setFont(_f("Poppins", FF), 6.5)
                 c.setFillColor(cls.TEXT_MED)
-                c.drawString(15, sy - 9 * _fscale, li.get("level", ""))
-                sy -= 22 * _fscale
+                c.drawString(15, sy - 20 * _fscale, li.get("level", ""))
+                sy -= 32 * _fscale
         
         # Main content
         my = H - 45 * _fscale
@@ -2931,6 +3199,7 @@ class _InternationalProfile:
         my -= 22 * _fscale
         
         if cv_data.get("summary"):
+            if my < 100 * _fscale: my = new_page()
             c.setFont(_f("Poppins-Bold", FF), 9)
             c.setFillColor(getattr(cls, 'SECTION_TITLE_COLOR', cls.ACCENT2))
             c.drawString(MAIN_X, my, L["summary"].upper())
@@ -2938,13 +3207,14 @@ class _InternationalProfile:
             my = _draw_multiline(c, cv_data["summary"], MAIN_X, my, "Poppins", 9, cls.TEXT_MED, MAIN_W, 13, force_family=FF) - 18 * _fscale
         
         if cv_data.get("experiences"):
+            if my < 120 * _fscale: my = new_page()
             c.setFont(_f("Poppins-Bold", FF), 9)
             c.setFillColor(getattr(cls, 'SECTION_TITLE_COLOR', cls.ACCENT2))
             c.drawString(MAIN_X, my, L["experience"].upper())
             my -= 16 * _fscale
             
             for exp in cv_data["experiences"]:
-                if my < 120: break
+                if my < 100 * _fscale: my = new_page()
                 c.setFillColor(getattr(cls, 'SECTION_TITLE_COLOR', cls.ACCENT))
                 c.circle(MAIN_X - 8, my + 4 * _fscale, 4 * _fscale, fill=1, stroke=0)
                 
@@ -2959,19 +3229,20 @@ class _InternationalProfile:
                 my -= 14 * _fscale
                 
                 for bullet in exp.get("bullets", []):
-                    if my < 100: break
+                    if my < 40 * _fscale: my = new_page()
                     bullet_y = my
                     my = _draw_multiline(c, "→ " + bullet, MAIN_X, bullet_y, "Poppins", 8, cls.TEXT_MED, MAIN_W, 11, force_family=FF) - 3 * _fscale
                 my -= 12 * _fscale
         
         # Education
-        if cv_data.get("education") and my > 100:
+        if cv_data.get("education"):
+            if my < 120 * _fscale: my = new_page()
             c.setFont(_f("Poppins-Bold", FF), 9)
             c.setFillColor(getattr(cls, 'SECTION_TITLE_COLOR', cls.ACCENT2))
             c.drawString(MAIN_X, my, L["education"].upper())
             my -= 14 * _fscale
             for edu in cv_data["education"]:
-                if my < 80: break
+                if my < 80 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 9)
                 c.setFillColor(getattr(cls, 'ROLE_COLOR', cls.TEXT_DARK))
                 c.drawString(MAIN_X, my, edu.get("degree", ""))
@@ -2981,6 +3252,7 @@ class _InternationalProfile:
                 c.drawString(MAIN_X, my, edu.get("school", "") + "  |  " + edu.get("year", ""))
                 my -= 14 * _fscale
         
+        _draw_ats_hidden_keywords(c, cv_data, getattr(cls, 'BODY_BG', getattr(cls, 'BG', None)))
         c.save()
         return buf.getvalue()
 

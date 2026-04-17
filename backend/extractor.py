@@ -7,18 +7,39 @@ import traceback
 
 def main():
     try:
-        from pdfminer.high_level import extract_text
+        import pdfplumber
 
         pdf_bytes = sys.stdin.buffer.read()
         if not pdf_bytes:
             print(json.dumps({"success": False, "error": "No input provided"}))
             sys.exit(1)
 
-        text = extract_text(io.BytesIO(pdf_bytes))
-        # Strip null bytes left by unmapped glyph icons
+        text = ""
+        links = set()
+        
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            for page in pdf.pages:
+                # Extract visible text
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+                
+                # Extract hidden hyperlinks (URIs)
+                for link in page.hyperlinks:
+                    uri = link.get('uri')
+                    if uri and (uri.startswith('http') or uri.startswith('mailto')):
+                        links.add(uri)
+
+        # Append hidden links to text for AI visibility
+        if links:
+            text += "\n\n--- DETECTED HYPERLINKS (UNMASKED) ---\n"
+            text += "\n".join(sorted(list(links)))
+            text += "\n-------------------------------------\n"
+
+        # Strip null bytes
         text = text.replace('\x00', '')
         
-        # Replace only problematic Unicode characters (keep French accents)
+        # Replace only problematic Unicode characters
         replacements = {
             '\u0153': 'oe',
             '\u0152': 'OE',

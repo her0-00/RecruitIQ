@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 
 /**
@@ -49,10 +49,9 @@ function extractJson(text: string): any {
 
 const GROQ_MODELS = [
   'llama-3.3-70b-versatile',
-  'meta-llama/llama-4-scout-17b-16e-instruct',
-  'moonshotai/kimi-k2-instruct',
-  'qwen/qwen3-32b',
+  'mixtral-8x7b-32768',
   'llama-3.1-8b-instant',
+  'gemma2-9b-it'
 ];
 
 async function callGroq(
@@ -101,7 +100,7 @@ async function callGroq(
   const isRateLimit = lastError?.status === 429 || lastError?.message?.includes('rate_limit');
   throw new Error(
     isRateLimit
-      ? 'Quota Groq ├®puis├® sur tous les mod├¿les. Attendez quelques minutes ou upgradez votre plan sur console.groq.com.'
+      ? 'Quota Groq épuisé sur tous les modèles. Attendez quelques minutes ou upgradez votre plan sur console.groq.com.'
       : (lastError?.message ?? 'All models failed')
   );
 }
@@ -123,7 +122,7 @@ export async function POST(req: Request) {
     const groq = new Groq({ apiKey: groqKey });
     const cleanCvText = sanitizeCvText(cv_text);
 
-    // ÔöÇÔöÇ AGENT 1: CV Audit ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    // ── AGENT 1: CV Audit ────────────────────────────────────────────────────────────────────────────────
     const system1 = `You are a senior HR expert, work psychologist and ATS specialist.
 Analyze the CV and job offer provided, then output a single JSON object.
 CRITICAL: Base ALL analysis strictly on the actual CV content. For present_keywords, only list keywords that genuinely appear in the CV. For missing_keywords, only list keywords from the job offer that are truly absent from the CV.
@@ -131,8 +130,8 @@ Required fields:
 - global_score: integer 0-100
 - ats_pass_probability: integer 0-100
 - salary_gap: string like "22%"
-- salary_estimate: string like "45-55kÔé¼"
-- salary_potential: string like "65-78kÔé¼"
+- salary_estimate: string like "45-55k€"
+- salary_potential: string like "65-78k€"
 - market_value_verdict: short striking phrase
 - sections: object with integer values 0-10 for keys: resume, formation, experience, competences, impact_quantifie, formatage_dates, verbes_action, longueur
 - job_match: object with integer values 0-100 for keys: missions, skills, seniority, culture
@@ -146,17 +145,17 @@ Required fields:
 - benchmark: object with integer values 0-100 for keys: tech, finance, consulting, marketing, rh_legal
 Output ONLY the raw JSON object. Do not add any explanation, markdown, or text outside the JSON.`;
 
-    const prompt1 = `CV:\n${cleanCvText.substring(0, 6000)}\n\nJOB OFFER:\n${job_desc ? job_desc.substring(0, 3000) : 'Senior management ÔÇö general analysis'}`;
+    const prompt1 = `CV:\n${cleanCvText.substring(0, 6000)}\n\nJOB OFFER:\n${job_desc ? job_desc.substring(0, 3000) : 'Senior management — general analysis'}`;
 
     const analysisData = await callGroq(groq, system1, prompt1, 'Agent1-Audit');
 
-    // ÔöÇÔöÇ AGENT 2: CV Rewrite ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    // ── AGENT 2: CV Rewrite ────────────────────────────────────────────────────────────────────────────
     const missingKws   = (analysisData.missing_keywords || []).slice(0, 8).join(', ');
     const currentScore = analysisData.global_score || 0;
 
     const system2 = boost_mode
       ? `You are an aggressive CV optimizer and career coach. Your goal: make this CV the strongest possible candidate for the target job.
-WRITE EVERYTHING IN ${outputLang.toUpperCase()} ÔÇö including role titles, bullets, summary, skill category names, and education details. Translate any French content to ${outputLang}.
+WRITE EVERYTHING IN ${outputLang.toUpperCase()} — including role titles, bullets, summary, skill category names, and education details. Translate any French content to ${outputLang}.
 
 Rules:
 - name: full name only (no title, no pipe, no year).
@@ -173,7 +172,7 @@ CRITICAL: experiences must be objects with bullets array, NOT strings.
 Output a single raw JSON with ONLY: name, title, email, phone, location, linkedin, github, summary, experiences, education, skills, languages, certifications.`
       : `You are an expert CV rewriter and career coach.
 Goal: rewrite the candidate's CV to maximize match with the target job, while staying truthful.
-WRITE EVERYTHING IN ${outputLang.toUpperCase()} ÔÇö including role titles, bullets, summary, skill category names, and education details. Translate any French content to ${outputLang}.
+WRITE EVERYTHING IN ${outputLang.toUpperCase()} — including role titles, bullets, summary, skill category names, and education details. Translate any French content to ${outputLang}.
 
 Rules:
 - name: full name only (no title, no pipe, no year).
@@ -205,7 +204,7 @@ IMPORTANT: The output language is ${outputLang.toUpperCase()}. Translate ALL rol
 
     const llmFields = await callGroq(groq, system2, prompt2, 'Agent2-Rewrite');
 
-    // Normalize skills: [{category, skills}] or [{name, skills}] ÔåÆ {categories:[{name,items}]}
+    // Normalize skills: [{category, skills}] or [{name, skills}] -> {categories:[{name,items}]}
     let skills = llmFields.skills;
     if (Array.isArray(skills)) {
       skills = { categories: skills.map((s: any) => ({
@@ -222,13 +221,13 @@ IMPORTANT: The output language is ${outputLang.toUpperCase()}. Translate ALL rol
            : Array.isArray(cat.skills) ? cat.skills.filter((i: any) => typeof i === 'string') : []
     }));
 
-    // Normalize languages: "French" ÔåÆ {lang,level,level_num}
+    // Normalize languages: "French" -> {lang,level,level_num}
     let languages: any[] = llmFields.languages ?? [];
     if (languages.length > 0 && typeof languages[0] === 'string') {
       languages = languages.map((l: string) => ({ lang: l, level: '', level_num: 3 }));
     }
     const levelLabel = (n: number, isEn: boolean) => {
-      const fr = ['', 'Notions', '├ël├®mentaire', 'Interm├®diaire', 'Professionnel', 'Natif'];
+      const fr = ['', 'Notions', 'Élémentaire', 'Intermédiaire', 'Professionnel', 'Natif'];
       const en = ['', 'Beginner', 'Elementary', 'Intermediate', 'Professional', 'Native'];
       return (isEn ? en : fr)[Math.min(Math.max(n, 1), 5)] ?? '';
     };
