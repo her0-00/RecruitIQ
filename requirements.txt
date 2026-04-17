@@ -1,4 +1,5 @@
 pdfminer.six>=20231228
+pdfplumber>=0.10.0
 reportlab>=4.2.0
 playwright>=1.40.0
 groq>=0.4.0
