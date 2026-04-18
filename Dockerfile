@@ -39,4 +39,7 @@ EXPOSE 10000
 # Verify Python installation
 RUN python --version && pip3 --version
 
+# Set PORT environment variable
+ENV PORT=10000
+
 CMD ["npm", "start"]
