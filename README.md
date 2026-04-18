@@ -6,6 +6,8 @@
 
 🌐 **Live Demo**: [https://riis.onrender.com/](https://riis.onrender.com/)
 
+![RIIS Home Interface](home.png)
+
 ---
 
 ## 🚀 The Value Proposition
