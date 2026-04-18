@@ -58,6 +58,17 @@ const THEME_CATEGORIES = [
       { name: 'International Profile', color: '#FFFFFF', accent: '#D32F2F', desc: 'Sidebar barres progression' },
     ],
   },
+  {
+    label: '🛡️ ATS-Optimized',
+    themes: [
+      { name: 'Impact Bold ATS', color: '#000000', accent: '#FFFFFF', desc: 'High Contrast · Black Header · Text-Only' },
+      { name: 'Elite ATS', color: '#FFFFFF', accent: '#1E40AF', desc: 'Pure 1-Column · Max Extraction' },
+      { name: 'Strategic Professional', color: '#FFFFFF', accent: '#2563EB', desc: 'Modern Clean · Safe Layout' },
+      { name: 'Standard Corporate', color: '#FFFFFF', accent: '#000000', desc: 'Harvard Style · Serif · Pro' },
+      { name: 'Strategic Modern', color: '#FFFFFF', accent: '#2563EB', desc: 'Tech Minimal · Royal Blue' },
+      { name: 'Executive Narrative', color: '#FFFFFF', accent: '#4F46E5', desc: 'Scan-Friendly · Left Labels' },
+    ],
+  },
 ];
 
 /**
