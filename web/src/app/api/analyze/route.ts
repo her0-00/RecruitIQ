@@ -3,6 +3,9 @@ import Groq from 'groq-sdk';
 import { Mistral } from '@mistralai/mistralai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 type AIProvider = 'groq' | 'mistral' | 'google';
 
 /**

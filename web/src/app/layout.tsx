@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   description: "AI-powered resume optimization with 3 AI providers. Analyze, rewrite, and export ATS-optimized CVs.",
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function RootLayout({
   children,
 }: Readonly<{
