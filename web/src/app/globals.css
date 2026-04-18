@@ -25,7 +25,119 @@
   --r-lg: 20px;
 }
 
-/* SOTA Luxury Light Theme */
+/* ═══════════════════════════════════════════════════════════════
+   PALETTE ① — VIOLET ÉLECTRIQUE ⭐ (Recommandée)
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="violet-electric"] {
+  --void: #0B0E1A;
+  --surface: #0D1022;
+  --card: #12162B;
+  --card2: #181D38;
+  --border: #7C5CFC33;
+  --border2: #7C5CFC55;
+  --gold: #7C5CFC;
+  --gold-bright: #9B7FFF;
+  --gold-glow: #7C5CFC44;
+  --cyan: #A89FC8;
+  --red: #FF6B9D;
+  --red-dim: #2D1520;
+  --green: #00D4AA;
+  --green-dim: #0A2820;
+  --amber: #FFB84D;
+  --amber-dim: #2A2010;
+  --text: #F0F2FF;
+  --text2: #A89FC8;
+  --text3: #6B6488;
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PALETTE ② — ÉMERAUDE TECH
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="emerald-tech"] {
+  --void: #0F1923;
+  --surface: #0C1820;
+  --card: #162330;
+  --card2: #1D2D3D;
+  --border: #00C48C30;
+  --border2: #00C48C44;
+  --gold: #00C48C;
+  --gold-bright: #00E8A0;
+  --gold-glow: #00C48C33;
+  --cyan: #8BA5B5;
+  --red: #FF6B6B;
+  --red-dim: #2D1515;
+  --green: #00C48C;
+  --green-dim: #0A2820;
+  --amber: #FFB84D;
+  --amber-dim: #2A2010;
+  --text: #E8F0F5;
+  --text2: #8BA5B5;
+  --text3: #5A6F7F;
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PALETTE ③ — MODE CLAIR PREMIUM
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="light-premium"] {
+  --void: #F7F5F0;
+  --surface: #EFECEA;
+  --card: #FFFFFF;
+  --card2: #FAFAF8;
+  --border: #DDD9D0;
+  --border2: #C8C3B8;
+  --gold: #E8611A;
+  --gold-bright: #FF7A33;
+  --gold-glow: #E8611A22;
+  --cyan: #7A7568;
+  --red: #DC2626;
+  --red-dim: #FFF5F5;
+  --green: #16A34A;
+  --green-dim: #F0F8F2;
+  --amber: #F59E0B;
+  --amber-dim: #FFF9E6;
+  --text: #1A1A2E;
+  --text2: #7A7568;
+  --text3: #A8A199;
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PALETTE ④ — OBSIDIAN + CYAN
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="obsidian-cyan"] {
+  --void: #08090E;
+  --surface: #060709;
+  --card: #0E1118;
+  --card2: #14161F;
+  --border: #00D4FF22;
+  --border2: #00D4FF33;
+  --gold: #00D4FF;
+  --gold-bright: #33E0FF;
+  --gold-glow: #00D4FF22;
+  --cyan: #7B9BB5;
+  --red: #FF6B9D;
+  --red-dim: #2D1520;
+  --green: #00E8A0;
+  --green-dim: #0A2820;
+  --amber: #FFB84D;
+  --amber-dim: #2A2010;
+  --text: #DDE8F5;
+  --text2: #7B9BB5;
+  --text3: #4A5F75;
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+}
+
+/* SOTA Luxury Light Theme (Legacy) */
 [data-theme="sota-luxury"] {
   --void: #FDFDFD;
   --surface: #FFFFFF;
@@ -61,6 +173,8 @@ body {
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
@@ -95,6 +209,8 @@ a {
 .page-container {
   display: flex;
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* SIDEBAR */
@@ -273,7 +389,8 @@ textarea.input-field {
   padding: 2.5rem 4rem;
   max-width: 1200px;
   margin: 0 auto;
-  min-width: 0; /* Ensures flex alignment works on Chromium/Edge */
+  min-width: 0;
+  width: 100%;
 }
 
 .hero {
@@ -1147,10 +1264,14 @@ textarea.input-field.mono {
   }
 
   .main-content {
-    padding: 2rem;
+    padding: 2rem 1.5rem;
   }
 
   .sgrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .custom-row {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -1296,13 +1417,17 @@ textarea.input-field.mono {
 
   /* PDF */
   .pdf-generate-card {
-    padding: 1.5rem;
+    padding: 1.5rem 1rem;
   }
 
   .pdf-iframe {
-    height: 75vh;
+    height: 70vh;
     border-radius: var(--r-md);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .cv-preview {
+    padding: 1.5rem;
   }
 
   .editor-bar {
@@ -1325,9 +1450,17 @@ textarea.input-field.mono {
   }
 
   .theme-card {
-    min-width: calc(33.33% - 6px) !important;
-    max-width: calc(33.33% - 6px) !important;
+    min-width: calc(50% - 4px) !important;
+    max-width: calc(50% - 4px) !important;
     padding: 0.6rem;
+  }
+
+  .theme-title {
+    font-size: 0.6rem;
+  }
+
+  .theme-preview {
+    height: 40px;
   }
 
   /* PDF actions */
@@ -1346,6 +1479,19 @@ textarea.input-field.mono {
 
   .empty h3 {
     font-size: 1.3rem;
+  }
+
+  .card-hd {
+    font-size: 0.52rem;
+  }
+
+  footer {
+    padding: 2rem 1rem !important;
+  }
+
+  footer [style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
   }
 }
 
@@ -1369,8 +1515,12 @@ textarea.input-field.mono {
   }
 
   .theme-card {
-    min-width: calc(50% - 4px) !important;
-    max-width: calc(50% - 4px) !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .theme-carousel {
+    gap: 8px !important;
   }
 
   .verdict-text {
@@ -1378,9 +1528,17 @@ textarea.input-field.mono {
   }
 
   .pdf-iframe {
-    height: 85vh;
+    height: 60vh;
     width: 100%;
     margin: 0;
+  }
+
+  .main-content {
+    padding: 1rem 0.8rem;
+  }
+
+  .card {
+    padding: 0.8rem;
   }
 
   /* CV Studio Customization - Mobile */
@@ -1453,4 +1611,19 @@ textarea.input-field.mono {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* ATS STRUCTURE WARNING ANIMATION */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.animate-in {
+  animation: fadeIn 0.4s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }

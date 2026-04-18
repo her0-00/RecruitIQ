@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { UploadCloud, FileText, CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Download, Play, LayoutTemplate, Wand2, ShieldCheck, Lock, Server, Eye, Trash2, Quote, BookOpen } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Download, Play, LayoutTemplate, Wand2, ShieldCheck, Lock, Server, Eye, Trash2, Quote, BookOpen, User, MapPin, Briefcase, GraduationCap, Layout, Check, Search } from 'lucide-react';
 import { cvExamples } from './examples';
 import OnboardingTour from './OnboardingTour';
 import SimplePDFEditor from './SimplePDFEditor';
+
 
 const THEME_CATEGORIES = [
   {
@@ -90,13 +91,14 @@ const ALL_THEMES = THEME_CATEGORIES.flatMap(c => c.themes);
 
 export default function Home() {
   const [apiKey, setApiKey] = useState('');
+  const [aiProvider, setAiProvider] = useState<'groq' | 'mistral' | 'google'>('groq');
   const [jobDesc, setJobDesc] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [cvText, setCvText] = useState('');
   const [selectedTheme, setSelectedTheme] = useState('Classic Dark');
   const [boostMode, setBoostMode] = useState(false);
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
-  const [uiTheme, setUiTheme] = useState<'dark' | 'sota-luxury'>('dark');
+  const [uiTheme, setUiTheme] = useState<'dark' | 'sota-luxury' | 'violet-electric' | 'emerald-tech' | 'light-premium' | 'obsidian-cyan'>('dark');
   const [profilePhoto, setProfilePhoto] = useState<string>('');  // base64
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string>('');
@@ -202,18 +204,32 @@ export default function Home() {
     if (key) setApiKey(key);
 
     // Load saved UI theme
-    const savedTheme = localStorage.getItem('ui-theme') as 'dark' | 'sota-luxury' | null;
+    const savedTheme = localStorage.getItem('ui-theme') as typeof uiTheme | null;
     if (savedTheme) {
       setUiTheme(savedTheme);
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
   }, []);
 
-  const toggleUiTheme = () => {
-    const newTheme = uiTheme === 'dark' ? 'sota-luxury' : 'dark';
-    setUiTheme(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('ui-theme', newTheme);
+  const cycleUiTheme = () => {
+    const themes: typeof uiTheme[] = ['dark', 'violet-electric', 'emerald-tech', 'obsidian-cyan', 'light-premium', 'sota-luxury'];
+    const currentIndex = themes.indexOf(uiTheme);
+    const nextTheme = themes[(currentIndex + 1) % themes.length];
+    setUiTheme(nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    localStorage.setItem('ui-theme', nextTheme);
+  };
+
+  const getThemeLabel = () => {
+    const labels = {
+      'dark': '🌙 Dark',
+      'violet-electric': '⚡ Violet',
+      'emerald-tech': '💎 Emerald',
+      'obsidian-cyan': '🔷 Obsidian',
+      'light-premium': '☀️ Light',
+      'sota-luxury': '✨ Luxury'
+    };
+    return labels[uiTheme];
   };
 
   const loadExample = (exampleKey: 'marketing' | 'dev' | 'sales') => {
@@ -280,10 +296,16 @@ export default function Home() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv_text: cvText, job_desc: jobDesc, api_key: apiKey, boost_mode: boostMode, lang })
+        body: JSON.stringify({ cv_text: cvText, job_desc: jobDesc, api_key: apiKey, boost_mode: boostMode, lang, ai_provider: aiProvider })
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (data.error) {
+        // Show error with suggestion if available
+        const errorMsg = data.suggestion 
+          ? `${data.error}\n\n💡 ${data.suggestion}` 
+          : data.error;
+        throw new Error(errorMsg);
+      }
 
       setAnalysisResult(data);
 
@@ -409,14 +431,14 @@ export default function Home() {
 
     // Otherwise, fetch new palettes
     if (!trimmedCompany) return alert('Veuillez saisir un nom d\'entreprise.');
-    if (!apiKey) return alert('Veuillez saisir votre clé API Groq dans la barre latérale.');
+    if (!apiKey) return alert(`Veuillez saisir votre clé API ${aiProvider === 'groq' ? 'Groq' : aiProvider === 'mistral' ? 'Mistral' : 'Google AI'} dans la barre latérale.`);
 
     setIsLoadingColors(true);
     try {
       const res = await fetch('/api/company-colors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company_name: trimmedCompany, api_key: apiKey }),
+        body: JSON.stringify({ company_name: trimmedCompany, api_key: apiKey, ai_provider: aiProvider }),
         cache: 'no-store'
       });
       const data = await res.json();
@@ -594,30 +616,37 @@ export default function Home() {
           </div>
         </div>
 
-        {/* UI Theme Toggle */}
-        <button
-          onClick={toggleUiTheme}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            borderRadius: 'var(--r-sm)',
-            background: 'var(--card)',
-            border: '1px solid var(--border)',
-            color: 'var(--text)',
-            fontSize: '0.65rem',
-            fontFamily: 'Space Mono, monospace',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}
-        >
-          {uiTheme === 'dark' ? '☀️ SOTA Luxury Light' : '🌙 Dark Mode'}
-        </button>
+        {/* UI Theme Selector */}
+        <div style={{ marginBottom: '0.5rem' }}>
+          <div className="slabel">/ Interface Theme</div>
+          <button
+            onClick={cycleUiTheme}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: 'var(--r-sm)',
+              background: 'linear-gradient(135deg, var(--gold) 0%, var(--gold-bright) 100%)',
+              border: '1px solid var(--gold)',
+              color: '#000',
+              fontSize: '0.68rem',
+              fontFamily: 'Space Mono, monospace',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontWeight: 700,
+              boxShadow: '0 2px 8px var(--gold-glow)'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            {getThemeLabel()} <span style={{ opacity: 0.6, fontSize: '0.55rem' }}>→ Cycle</span>
+          </button>
+        </div>
 
         <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)}>
           {sidebarOpen ? '▲ Hide settings' : '▼ Show settings — API key, CV, job offer'}
@@ -644,11 +673,49 @@ export default function Home() {
           </div>
 
           <div>
-            <div className="slabel">/ API Key (Groq)</div>
+            <div className="slabel">/ AI Provider</div>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '1rem' }}>
+              {(['groq', 'mistral', 'google'] as const).map(provider => (
+                <button
+                  key={provider}
+                  onClick={() => setAiProvider(provider)}
+                  style={{
+                    flex: 1, padding: '10px 0', borderRadius: '7px', cursor: 'pointer',
+                    fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em',
+                    background: aiProvider === provider ? 'var(--gold)' : 'var(--surface)',
+                    color: aiProvider === provider ? '#000' : 'var(--text3)',
+                    border: `1px solid ${aiProvider === provider ? 'var(--gold)' : 'var(--border)'}`,
+                    transition: 'all 0.2s',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  {provider === 'groq' ? '⚡ Groq' : provider === 'mistral' ? '🌊 Mistral' : '🔷 Google'}
+                </button>
+              ))}
+            </div>
+            {aiProvider === 'groq' && (
+              <div style={{ fontSize: '0.6rem', color: 'var(--text3)', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+                Get your free API key at <a href="https://console.groq.com" target="_blank" rel="noopener" style={{ color: 'var(--gold)' }}>console.groq.com</a>
+              </div>
+            )}
+            {aiProvider === 'mistral' && (
+              <div style={{ fontSize: '0.6rem', color: 'var(--text3)', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+                Get your API key at <a href="https://console.mistral.ai" target="_blank" rel="noopener" style={{ color: 'var(--gold)' }}>console.mistral.ai</a>
+              </div>
+            )}
+            {aiProvider === 'google' && (
+              <div style={{ fontSize: '0.6rem', color: 'var(--text3)', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+                Get your API key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style={{ color: 'var(--gold)' }}>aistudio.google.com</a>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="slabel">/ API Key ({aiProvider === 'groq' ? 'Groq' : aiProvider === 'mistral' ? 'Mistral AI' : 'Google AI'})</div>
             <input
               type="password"
               className="input-field"
-              placeholder="gsk_••••••••••"
+              placeholder={aiProvider === 'groq' ? 'gsk_••••••••••' : aiProvider === 'mistral' ? 'mistral_••••••••••' : 'AIza••••••••••'}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
             />
@@ -743,8 +810,8 @@ export default function Home() {
         </div>{/* sidebar-body */}
       </div>{/* sidebar */}
 
-      {/* MAIN */}
-      <div className="main-content">
+        {/* MAIN */}
+      <div className="main-content" style={{ width: '100%', maxWidth: '100%' }}>
         <div className="hero">
           <div>
             <div className="eyebrow">Studio Grade Generator</div>
@@ -758,7 +825,7 @@ export default function Home() {
             {isAnalyzing ? (
               <>
                 <div className="spinner" style={{ marginBottom: '1rem' }}></div>
-                <h3 style={{ color: 'var(--gold-bright)' }}>Analyzing with Groq AI...</h3>
+                <h3 style={{ color: 'var(--gold-bright)' }}>Analyzing with {aiProvider === 'groq' ? 'Groq' : aiProvider === 'mistral' ? 'Mistral' : 'Google'} AI...</h3>
                 <p>Running multi-agent diagnostics on your resume...</p>
               </>
             ) : (
@@ -776,6 +843,44 @@ export default function Home() {
           </div>
         ) : (
           <>
+            {/* ATS STRUCTURE WARNING */}
+            {analysisResult.ats_structure_risk && ['MEDIUM', 'HIGH', 'CRITICAL'].includes(analysisResult.ats_structure_risk) && (
+              <div className="card" style={{
+                background: analysisResult.ats_structure_risk === 'CRITICAL' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(251, 191, 36, 0.1)',
+                border: `2px solid ${analysisResult.ats_structure_risk === 'CRITICAL' ? '#EF4444' : '#F59E0B'}`,
+                marginBottom: '1.5rem',
+                animation: 'pulse 2s infinite'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                  <AlertTriangle size={32} color={analysisResult.ats_structure_risk === 'CRITICAL' ? '#EF4444' : '#F59E0B'} style={{ flexShrink: 0 }} />
+                  <div>
+                    <h3 style={{ 
+                      color: analysisResult.ats_structure_risk === 'CRITICAL' ? '#EF4444' : '#F59E0B',
+                      fontSize: '1.1rem',
+                      fontWeight: 900,
+                      marginBottom: '0.5rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}>
+                      {analysisResult.ats_structure_risk === 'CRITICAL' ? '🚨 DANGER CRITIQUE ATS' : '⚠️ RISQUE STRUCTURE ATS'}
+                    </h3>
+                    <p style={{ fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '1rem' }}>
+                      {analysisResult.ats_structure_warning}
+                    </p>
+                    <div style={{
+                      background: 'rgba(0,0,0,0.2)',
+                      padding: '0.8rem',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      lineHeight: '1.5'
+                    }}>
+                      <strong>💡 Solution :</strong> Utilisez l'onglet <strong>CV PDF Export</strong> pour générer un CV avec une structure ATS-safe (1 colonne, texte extractible, ordre logique).
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* KPIs */}
             <div className="kpis">
               <div className={`kpi ${analysisResult.global_score >= 80 ? 'ok' : 'warn'}`}>
@@ -794,6 +899,58 @@ export default function Home() {
                 <div className="kpi-s">Estimated: {analysisResult.salary_estimate}</div>
               </div>
             </div>
+
+            {/* Models Used */}
+            {analysisResult._models_used && (
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                marginBottom: '1.5rem',
+                fontSize: '0.65rem',
+                fontFamily: 'Space Mono, monospace',
+                color: 'var(--text3)',
+                justifyContent: 'center',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{ color: 'var(--gold)', fontWeight: 700, textTransform: 'uppercase' }}>
+                    {analysisResult._models_used.provider === 'groq' ? '⚡ Groq' : analysisResult._models_used.provider === 'mistral' ? '🌊 Mistral' : '🔷 Google'}
+                  </span>
+                </div>
+                <div style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{ color: 'var(--cyan)', fontWeight: 700 }}>Agent1:</span>
+                  <span>{analysisResult._models_used.agent1}</span>
+                </div>
+                <div style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{ color: 'var(--gold)', fontWeight: 700 }}>Agent2:</span>
+                  <span>{analysisResult._models_used.agent2}</span>
+                </div>
+              </div>
+            )}
 
             {/* TABS MENU */}
             <div className="tabs">
@@ -932,6 +1089,74 @@ export default function Home() {
                         );
                       })}
                     </div>
+                  </div>
+                )}
+
+                {/* ADVANCED DEEP AUDIT REPORT */}
+                {analysisResult.detailed_report && (
+                  <div className="animate-in" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px', marginBottom: '1.5rem' }}>
+                    <div className="card-hd" style={{ marginBottom: '5px' }}>🛡️ Deep Audit Multi-Agents</div>
+                    {analysisResult.detailed_report.map((report: any, idx: number) => (
+                      <div key={idx} className="card" style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                        <div style={{ background: 'var(--surface-subtle)', padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          {report.category.includes('Identité') || report.category.includes('Projet') ? <User size={16} color="var(--gold)" /> : 
+                           report.category.includes('Mobilité') || report.category.includes('Coordonnées') ? <MapPin size={16} color="var(--gold)" /> :
+                           report.category.includes('Expériences') ? <Briefcase size={16} color="var(--gold)" /> :
+                           report.category.includes('Formations') ? <GraduationCap size={16} color="var(--gold)" /> :
+                           <Layout size={16} color="var(--gold)" />}
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{report.category}</span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+                          {/* POINTS CONFORMES */}
+                          <div style={{ padding: '15px 20px', borderRight: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--green)', letterSpacing: '0.08em', marginBottom: '10px' }}>POINTS CONFORMES</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {report.pros.length > 0 ? report.pros.map((p: string, i: number) => (
+                                <div key={i} style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', color: 'var(--text1)' }}>
+                                  <Check size={14} color="var(--green)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                  <span>{p}</span>
+                                </div>
+                              )) : (
+                                <div style={{ fontSize: '0.75rem', fontStyle: 'italic', opacity: 0.5 }}>Aucun point conforme détecté.</div>
+                              )}
+                            </div>
+                          </div>
+                          {/* POINTS A AMELIORER */}
+                          <div style={{ padding: '15px 20px', background: 'rgba(239, 68, 68, 0.02)' }}>
+                            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--red)', letterSpacing: '0.08em', marginBottom: '10px' }}>POINTS À AMÉLIORER</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {report.cons.length > 0 ? report.cons.map((c: string, i: number) => (
+                                <div key={i} style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', color: 'var(--text1)' }}>
+                                  <AlertCircle size={14} color="var(--red)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                  <span>{c}</span>
+                                </div>
+                              )) : (
+                                <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Check size={14} /> Tous les critères sont validés.
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {boostMode && report.cons.length > 0 && (
+                          <div style={{ padding: '8px 20px', background: 'rgba(200,169,110,0.1)', borderTop: '1px solid rgba(200,169,110,0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Sparkles size={12} color="var(--gold)" />
+                            <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--gold-bright)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Auto-Fixed by Mode Boost</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {analysisResult.orthography_verdict && (
+                  <div className="card" style={{ marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+                    <div className="card-hd" style={{ fontSize: '0.7rem' }}>✍️ Verdict Orthographique</div>
+                    <p style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text2)' }}>
+                      "{typeof analysisResult.orthography_verdict === 'string' 
+                        ? analysisResult.orthography_verdict 
+                        : analysisResult.orthography_verdict.verdict || JSON.stringify(analysisResult.orthography_verdict)}"
+                    </p>
                   </div>
                 )}
 

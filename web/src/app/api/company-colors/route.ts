@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { Mistral } from '@mistralai/mistralai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const dynamic = 'force-dynamic';
+
+type AIProvider = 'groq' | 'mistral' | 'google';
 
 function extractJson(text: string): any {
   const start = text.indexOf('{');
@@ -30,7 +34,8 @@ function extractJson(text: string): any {
 
 export async function POST(req: Request) {
   try {
-    const { company_name, api_key } = await req.json();
+    const { company_name, api_key, ai_provider } = await req.json();
+    const provider: AIProvider = ai_provider || 'groq';
 
     const cleanName = (typeof company_name === 'string' ? company_name : '').trim().slice(0, 50);
     const cleanKey = (typeof api_key === 'string' ? api_key : '').trim();
@@ -39,21 +44,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing company name' }, { status: 400 });
     }
 
-    const groqKey = cleanKey || process.env.GROQ_API_KEY;
-    if (!groqKey) {
-      return NextResponse.json({ error: 'Missing Groq API Key' }, { status: 400 });
+    const apiKeyToUse = cleanKey || (provider === 'groq' ? process.env.GROQ_API_KEY : provider === 'mistral' ? process.env.MISTRAL_API_KEY : process.env.GOOGLE_API_KEY);
+    if (!apiKeyToUse) {
+      return NextResponse.json({ error: `Missing ${provider === 'groq' ? 'Groq' : provider === 'mistral' ? 'Mistral' : 'Google'} API Key` }, { status: 400 });
     }
 
-    // Diagnostic log for Render debugging
-    console.log(`[BRAND-COLORS] Input: "${cleanName}" | Key length: ${groqKey.length}`);
+    console.log(`[BRAND-COLORS] Provider: ${provider} | Input: "${cleanName}" | Key length: ${apiKeyToUse.length}`);
 
-    const groq = new Groq({ apiKey: groqKey });
-
-    // --- NEW: Web Search & Deep Extraction ---
+    // --- Web Search & Deep Extraction ---
     console.log(`[BRAND-COLORS] Searching ground truth for: ${cleanName}...`);
     let groundTruth = "";
     try {
-      // 1. Try Direct Targeting (BrandColorCode)
       const slug = cleanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-t0-9]+/g, "-").replace(/^-+|-+$/g, "");
       const directUrl = `https://www.brandcolorcode.com/${slug}`;
       console.log(`[BRAND-COLORS] Trying direct source: ${directUrl}`);
@@ -64,7 +65,6 @@ export async function POST(req: Request) {
       if (directResp.ok) {
         targetUrl = directUrl;
       } else {
-        // 2. Fallback to Search if direct targeting failed
         const searchUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(cleanName)}+brand+identity+hex+color+guidelines`;
         const searchResp = await fetch(searchUrl, {
           headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36' }
@@ -116,51 +116,119 @@ Return ONLY this JSON:
 Generate 4 variations style: Institutional, Modern, Minimalist, Bold. 
 No preamble. No markdown code blocks. Just raw JSON.`;
 
-    // Benchmark results (2025-01-17):
-    // 1. llama-3.1-8b-instant: 161.8 score (100% success, 0.33s avg) - Ultra-fast
-    // 2. llama-3.3-70b-versatile: 105.0 score (100% success, 0.86s avg) - Robust
-    // 3. openai/gpt-oss-120b: 61.1 score (50% success, 1.15s avg) - Backup
-    // 4. openai/gpt-oss-20b: 59.1 score (12% success, 0.60s avg) - Last resort
-    const fallbackModels = [
-      'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'openai/gpt-oss-120b',
-      'openai/gpt-oss-20b'
-    ];
-    let chatCompletion;
+    let content = '';
     let lastError;
 
-    for (const model of fallbackModels) {
-      try {
-        console.log(`[BRAND-COLORS] Attempting with PREMIUM model: ${model}`);
-        chatCompletion = await groq.chat.completions.create({
-          messages: [
-            {
-              role: 'user',
-              content: combinedPrompt
-            }
-          ],
-          model: model,
-          temperature: 0.1,
-          max_tokens: 1000,
-        });
-        break; // Success!
-      } catch (err: any) {
-        lastError = err;
-        if (err.status === 429) {
-          console.warn(`[BRAND-COLORS] Model ${model} rate limited, trying next...`);
-          continue;
+    if (provider === 'groq') {
+      const groq = new Groq({ apiKey: apiKeyToUse });
+      const fallbackModels = [
+        'llama-3.3-70b-versatile',
+        'llama-3.1-8b-instant',
+        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b'
+      ];
+
+      for (const model of fallbackModels) {
+        try {
+          console.log(`[BRAND-COLORS] Attempting Groq model: ${model}`);
+          const chatCompletion = await groq.chat.completions.create({
+            messages: [{ role: 'user', content: combinedPrompt }],
+            model: model,
+            temperature: 0.1,
+            max_tokens: 1000,
+          });
+          content = (chatCompletion.choices[0]?.message?.content || '').trim();
+          break;
+        } catch (err: any) {
+          lastError = err;
+          if (err.status === 429) {
+            console.warn(`[BRAND-COLORS] Groq ${model} rate limited, trying next...`);
+            continue;
+          }
+          throw err;
         }
-        throw err; // Real error
+      }
+    } else if (provider === 'mistral') {
+      const mistral = new Mistral({ apiKey: apiKeyToUse });
+      const fallbackModels = [
+        'ministral-8b-latest',
+        'mistral-small-latest',
+        'mistral-large-latest'
+      ];
+
+      for (const model of fallbackModels) {
+        try {
+          console.log(`[BRAND-COLORS] Attempting Mistral model: ${model}`);
+          const response = await mistral.chat.complete({
+            model,
+            messages: [{ role: 'user', content: combinedPrompt }],
+            temperature: 0.1,
+            maxTokens: 1000,
+            responseFormat: { type: 'json_object' },
+            safePrompt: false
+          });
+          const raw = response?.choices?.[0]?.message?.content || '';
+          content = typeof raw === 'string' ? raw : JSON.stringify(raw);
+          break;
+        } catch (err: any) {
+          lastError = err;
+          const msg = err?.message || '';
+          if (err?.statusCode === 429 || msg.includes('rate_limit')) {
+            console.warn(`[BRAND-COLORS] Mistral ${model} rate limited, trying next...`);
+            continue;
+          }
+          if (msg.includes('fetch failed') || msg.includes('ConnectionError')) {
+            console.warn(`[BRAND-COLORS] Mistral ${model} connection failed, trying next...`);
+            continue;
+          }
+          throw err;
+        }
+      }
+    } else {
+      // Google AI
+      const genAI = new GoogleGenerativeAI(apiKeyToUse);
+      const fallbackModels = [
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-flash-latest'
+      ];
+
+      for (const modelName of fallbackModels) {
+        try {
+          console.log(`[BRAND-COLORS] Attempting Google model: ${modelName}`);
+          const model = genAI.getGenerativeModel({ 
+            model: modelName,
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: 'application/json'
+            }
+          });
+          const result = await model.generateContent(combinedPrompt);
+          content = result.response.text();
+          if (typeof content !== 'string') {
+            content = JSON.stringify(content);
+          }
+          break;
+        } catch (err: any) {
+          lastError = err;
+          const msg = err?.message || '';
+          if (msg.includes('quota') || msg.includes('429')) {
+            console.warn(`[BRAND-COLORS] Google ${modelName} quota exceeded, trying next...`);
+            continue;
+          }
+          if (msg.includes('fetch failed') || msg.includes('ECONNREFUSED') || msg.includes('404')) {
+            console.warn(`[BRAND-COLORS] Google ${modelName} not available, trying next...`);
+            continue;
+          }
+          throw err;
+        }
       }
     }
 
-    if (!chatCompletion) throw lastError;
+    if (!content) throw lastError || new Error('All models failed');
 
-    const content = (chatCompletion.choices[0]?.message?.content || '').trim();
     console.log('[DEBUG-API] Final model output:', content);
 
-    // Simple cleanup for common hallucination: extra quotes around objects in arrays
     const cleanedContent = content
       .replace(/",\s*\{/g, ', {')
       .replace(/\}\s*,"/g, '}, ')
