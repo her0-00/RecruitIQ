@@ -109,6 +109,41 @@ Navigate to `http://localhost:3000` to start your audit.
 
 ---
 
+## 🚀 Deployment (Render.com)
+
+### One-Click Deploy
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com)
+
+### Manual Deployment
+1. **Fork this repository** to your GitHub account
+2. **Create a new Web Service** on [Render.com](https://render.com)
+3. **Connect your GitHub repository**
+4. **Configure Environment Variables**:
+   ```
+   GROQ_API_KEY=your_groq_key_here
+   MISTRAL_API_KEY=your_mistral_key_here (optional)
+   GOOGLE_API_KEY=your_google_key_here (optional)
+   PORT=10000
+   ```
+5. **Deploy Settings**:
+   - **Build Command**: (Handled by Dockerfile)
+   - **Start Command**: (Handled by Dockerfile)
+   - **Docker**: Enabled (uses `Dockerfile` in root)
+
+### Post-Deployment Notes
+- **Cold Start**: On Render's free tier, the service sleeps after 15 minutes of inactivity
+- **First Load**: May take 30-60 seconds to wake up the service
+- **Dynamic Rendering**: RIIS uses `force-dynamic` to prevent static caching issues
+- **No Reload Needed**: Once the service is awake, all API calls work immediately
+
+### Troubleshooting Render Deployment
+- **503 Error on first load**: Normal - service is waking up from sleep
+- **API calls failing**: Check environment variables are set correctly
+- **PDF generation timeout**: Increase timeout in Render settings (paid plans)
+- **Port issues**: Ensure `PORT=10000` is set in environment variables
+
+---
+
 ## 🏗️ Architecture: How the Utility Works
 RIIS operates as a dual-agent pipeline:
 1. **The Auditor**: Extracts text (pdfminer) and performs a competitive analysis.
@@ -122,6 +157,13 @@ RIIS operates as a dual-agent pipeline:
 - **AI Engine**: Groq API / Mistral AI / Google AI (Gemini)
 - **PDF Processing**: pdfminer.six for text extraction
 - **Image Processing**: Pillow with face detection for photo optimization
+- **Deployment**: Docker-ready with Render.com support
+
+### Performance Optimizations
+- **Force Dynamic Rendering**: Prevents static caching issues on serverless platforms
+- **No-Cache Middleware**: Ensures fresh API responses on every request
+- **Standalone Output**: Optimized Docker builds for faster cold starts
+- **In-Memory Processing**: Zero database overhead for maximum speed
 
 ---
 
