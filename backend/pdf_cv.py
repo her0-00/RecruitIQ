@@ -1,5 +1,5 @@
 """
-RecruitIQ — Moteur de génération PDF
+RIIS — Moteur de génération PDF
 5 thèmes CV : Classic-Dark, Canva-Minimal, Executive-Dark, Nordic-Clean, Tech-Grid, Luxury-Serif
 """
 

@@ -1,4 +1,4 @@
-# 🎯 RecruitIQ v4.0 - Changelog & Features
+# 🎯 RIIS v4.0 - Changelog & Features
 
 ## ✨ Nouvelles Fonctionnalités
 
@@ -309,8 +309,8 @@ python scraper_cli.py "développeur" "France"
 
 ### Setup Dev
 ```bash
-git clone https://github.com/your-repo/recruitiq.git
-cd recruitiq
+git clone https://github.com/your-repo/RIIS.git
+cd RIIS
 
 # Install Python deps
 pip install -r requirements.txt
@@ -336,7 +336,7 @@ MIT
 
 ---
 
-✅ **RecruitIQ v4.0 - Production Ready** 🚀
+✅ **RIIS v4.0 - Production Ready** 🚀
 
 
 ---

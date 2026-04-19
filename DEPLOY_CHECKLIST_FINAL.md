@@ -96,7 +96,7 @@ GOOGLE_API_KEY=AIza...
 ### 4. Déployer
 - Cliquer **Create Web Service**
 - Build time : ~10-15 min
-- URL finale : `https://recruitiq.onrender.com`
+- URL finale : `https://RIIS.onrender.com`
 
 ---
 
@@ -104,7 +104,7 @@ GOOGLE_API_KEY=AIza...
 
 ### Test 1 : Groq Provider
 ```
-1. Ouvrir https://recruitiq.onrender.com
+1. Ouvrir https://RIIS.onrender.com
 2. Sélectionner "⚡ Groq"
 3. Entrer clé API Groq
 4. Upload CV + job offer
@@ -245,7 +245,7 @@ git push origin main
 # https://render.com
 
 # 4. Tester l'URL publique
-# https://recruitiq.onrender.com
+# https://RIIS.onrender.com
 ```
 
 ---

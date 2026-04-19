@@ -1,5 +1,5 @@
 """
-RecruitIQ — Photo Profile Processor
+RIIS — Photo Profile Processor
 Intelligent face detection, cropping, and optimization for CV photos
 """
 

@@ -172,7 +172,7 @@ Gardez votre CV Canva design pour :
 > **"Votre CV est magnifique... mais invisible pour les robots."**
 > 
 > 75% des CV design (Canva, Figma) sont rejetés automatiquement.
-> RecruitIQ détecte les structures dangereuses et génère des CV
+> RIIS détecte les structures dangereuses et génère des CV
 > ATS-optimisés qui passent les filtres automatiques.
 > 
 > **Résultat** : 3x plus de réponses, 0 compromis sur le design.

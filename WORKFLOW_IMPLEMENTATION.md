@@ -1,4 +1,4 @@
-# RecruitIQ - Dual Workflow Implementation
+# RIIS - Dual Workflow Implementation
 
 ## ✅ Implemented Features
 
@@ -106,4 +106,4 @@
 - **Clear UX**: Two-button choice, obvious next steps
 - **Fast feedback**: Loading states, auto-redirect
 - **Graceful fallback**: Works without API key (manual keywords)
-- **Consistent styling**: Matches existing RecruitIQ design system
+- **Consistent styling**: Matches existing RIIS design system

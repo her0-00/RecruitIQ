@@ -1300,7 +1300,7 @@ export default function Home() {
             {/* TAB: TIPS */}
             {activeTab === 'tips' && (
               <div className="card" style={{ padding: '0' }}>
-                <div className="card-hd" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>🚀 RecruitIQ Pro Tips</div>
+                <div className="card-hd" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>🚀 RIIS Pro Tips</div>
                 <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
 
                   <div className="ins cyan" style={{ margin: 0 }}>

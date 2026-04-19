@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 const STEPS = [
   {
     target: '.brand',
-    title: 'Bienvenue sur RecruitIQ ⧡',
+    title: 'Bienvenue sur RIIS ⧡',
     desc: 'La plateforme tout-en-un : analysez votre CV avec l\'IA, optimisez-le pour les ATS, comparez-le aux systèmes ATS réels, exportez en 26 thèmes PDF premium et matchez avec des offres d\'emploi en temps réel.',
     position: 'right' as const,
   },
@@ -59,7 +59,7 @@ export default function OnboardingTour() {
 
   useEffect(() => {
     try {
-      const done = localStorage.getItem('recruitiq_tour_done');
+      const done = localStorage.getItem('RIIS_tour_done');
       if (!done) setTimeout(() => setShow(true), 600);
     } catch {
       setTimeout(() => setShow(true), 600);
@@ -69,7 +69,7 @@ export default function OnboardingTour() {
   // Expose reset for dev — remove in prod if needed
   useEffect(() => {
     (window as any).__resetTour = () => {
-      localStorage.removeItem('recruitiq_tour_done');
+      localStorage.removeItem('RIIS_tour_done');
       setShow(true);
       setActive(false);
       setStep(0);
@@ -145,7 +145,7 @@ export default function OnboardingTour() {
       setTimeout(() => { setActive(true); setStep(0); }, 1500);
     }, 300);
   };
-  const skip = () => { setShow(false); localStorage.setItem('recruitiq_tour_done', '1'); };
+  const skip = () => { setShow(false); localStorage.setItem('RIIS_tour_done', '1'); };
   const next = () => {
     if (step < STEPS.length - 1) {
       setStep(s => s + 1);
@@ -154,7 +154,7 @@ export default function OnboardingTour() {
     }
   };
   const prev = () => { if (step > 0) setStep(s => s - 1); };
-  const finish = () => { setActive(false); localStorage.setItem('recruitiq_tour_done', '1'); };
+  const finish = () => { setActive(false); localStorage.setItem('RIIS_tour_done', '1'); };
 
   const PAD = 8;
   const tooltipW = typeof window !== 'undefined' && window.innerWidth <= 768
@@ -220,7 +220,7 @@ export default function OnboardingTour() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '1.4rem'
             }}>⬡</div>
-            <h2 style={{ fontSize: '1.6rem', marginBottom: '0.6rem' }}>Bienvenue sur RecruitIQ</h2>
+            <h2 style={{ fontSize: '1.6rem', marginBottom: '0.6rem' }}>Bienvenue sur RIIS</h2>
             <p style={{ color: 'var(--text2)', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '0.8rem' }}>
               Votre CV passe-t-il les filtres ATS ? Analyse IA, comparaison multi-ATS, 26 thèmes PDF et matching d\'offres en temps réel.
             </p>

@@ -1,4 +1,4 @@
-# ✅ RecruitIQ - Checklist de Déploiement Render
+# ✅ RIIS - Checklist de Déploiement Render
 
 ## 📋 Pré-déploiement
 
