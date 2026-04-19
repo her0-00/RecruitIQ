@@ -401,6 +401,8 @@ Rules:
 - languages: EXACTLY [{"lang": "...", "level": "...", "level_num": 1-5}]. ONLY languages from CV. level label in ${outputLang}.
 - certifications: array of strings. [] if none. ADD "Permis B" if driving relevant and missing.
 - interests: array of strings (hobbies, etc.). [] if none.
+-formatting: STRICTLY NO MARKDOWN. Do not use bold (**) or any other markdown characters in the values.
+
 
 CRITICAL: experiences must be objects with bullets array, NOT strings. STAY TRUTHFUL - optimize wording but do not fabricate content.
 Output a single raw JSON with ONLY: name, title, email, phone, location, linkedin, github, summary, experiences, education, skills, languages, certifications, interests.`
@@ -423,6 +425,7 @@ Rules:
 - languages: EXACTLY [{"lang": "...", "level": "...", "level_num": 1-5}]. ONLY languages from CV. level label in ${outputLang}.
 - certifications: array of strings. [] if none.
 - interests: array of strings (hobbies, etc.). [] if none.
+- formatting: STRICTLY NO MARKDOWN. Do not use bold (**) or any other markdown characters in the values.
 
 CRITICAL: experiences must be objects with bullets array, NOT strings.
 Output a single raw JSON with ONLY: name, title, email, phone, location, linkedin, github, summary, experiences, education, skills, languages, certifications, interests.`;
