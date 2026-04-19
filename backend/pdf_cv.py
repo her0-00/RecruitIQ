@@ -857,7 +857,7 @@ class _ClassicDark:
         if cv_data.get("experiences"):
             my = section_title(L["experience"], my)
             for i, exp in enumerate(cv_data["experiences"]):
-                if my < 110: my = new_page()
+                if my < 110 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 10.5)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, exp.get("company", ""))
@@ -872,7 +872,7 @@ class _ClassicDark:
                 c.drawString(MX, my, comp)
                 my -= 14 * _fscale
                 for bullet in exp.get("bullets", []):
-                    if my < 100: my = new_page()
+                    if my < 100 * _fscale: my = new_page()
                     bullet_y = my
                     c.setFillColor(cls.ACCENT)
                     c.setFont(_f("Poppins-Bold", FF), 8)
@@ -891,10 +891,10 @@ class _ClassicDark:
 
         # Education
         if cv_data.get("education"):
-            if my < 140: my = new_page()
+            if my < 140 * _fscale: my = new_page()
             my = section_title(L["education"], my)
             for edu in cv_data["education"]:
-                if my < 100: my = new_page()
+                if my < 100 * _fscale: my = new_page()
                 c.setFillColor(cls.ACCENT)
                 c.rect(MX, my - 1, 5, 5, fill=1, stroke=0)
                 c.setFont(_f("Poppins-Bold", FF), 9.5)
@@ -945,7 +945,7 @@ class _ClassicDark:
         if cv_data.get("languages") and my > 80:
             my = section_title(L["languages"], my)
             for li in cv_data["languages"]:
-                if my < 60: break
+                if my < 60 * _fscale: break
                 txt = f"{li.get('lang', '')} ({li.get('level', '')})"
                 c.setFont(_f("Poppins-Medium", FF), 8.5)
                 c.setFillColor(cls.TEXT_DARK)
@@ -1034,7 +1034,8 @@ class _CanvaMinimal:
         if cv_data.get("experiences"):
             my = section_title(L["experience"], my)
             for exp in cv_data["experiences"]:
-                if my < 110: my = new_page()
+                if my < 110 * _fscale: my = new_page()
+                if my < 110 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 10.5)
                 c.setFillColor(getattr(cls, 'ROLE_COLOR', cls.TEXT_DARK))
                 c.drawString(MX, my, exp.get("role", ""))
@@ -1049,18 +1050,18 @@ class _CanvaMinimal:
                 c.drawString(MX, my, comp)
                 my -= 14 * _fscale
                 for bullet in exp.get("bullets", []):
-                    if my < 45: my = new_page()
+                    if my < 45 * _fscale: my = new_page()
                     bullet_y = my
                     c.setFillColor(cls.ACCENT)
-                    c.circle(MX + 4, bullet_y + 3 * _fscale, 2 * _fscale, fill=1, stroke=0)
-                    my = _draw_multiline(c, bullet, MX + 14, bullet_y, "Poppins", 8.5, cls.TEXT_MED, MW - 16, 13, force_family=FF) - 2 * _fscale
+                    c.circle(MX + 4 * _fscale, bullet_y + 3 * _fscale, 2.2 * _fscale, fill=1, stroke=0)
+                    my = _draw_multiline(c, bullet, MX + 14 * _fscale, bullet_y, "Poppins", 8.5, cls.TEXT_MED, MW - 16 * _fscale, 13, force_family=FF) - 2 * _fscale
                 my -= 12 * _fscale
 
         # Education
         if cv_data.get("education"):
             my = section_title(L["education"], my)
             for edu in cv_data["education"]:
-                if my < 70: my = new_page()
+                if my < 70 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 10)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, edu.get("degree", ""))
@@ -1077,14 +1078,14 @@ class _CanvaMinimal:
         if cv_data.get("skills", {}).get("categories"):
             my = section_title(L["skills"], my, cls.ACCENT2)
             for cat in cv_data["skills"]["categories"]:
-                if my < 60: my = new_page()
+                if my < 60 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 8)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, cat.get("name", ""))
                 my -= 12 * _fscale
                 tx = MX
                 for skill in cat.get("items", []):
-                    if my < 50: 
+                    if my < 50 * _fscale: 
                         my = new_page()
                         my = section_title(L["skills"], my, cls.ACCENT2)
                         tx = MX
@@ -1104,7 +1105,7 @@ class _CanvaMinimal:
         if cv_data.get("languages"):
             my = section_title(L["languages"], my, cls.ACCENT2)
             for li in cv_data["languages"]:
-                if my < 50: my = new_page()
+                if my < 50 * _fscale: my = new_page()
                 txt = f"{li.get('lang', '')} ({li.get('level', '')})"
                 c.setFont(_f("Poppins-Medium", FF), 9)
                 c.setFillColor(cls.TEXT_DARK)
@@ -1163,7 +1164,7 @@ class _NordicClean:
             c.showPage()
             _draw_rect(c, 0, 0, W, H, fill=cls.BG)
             _draw_rect(c, 0, H - 6, W, 6, fill=cls.ACCENT)
-            return H - 60
+            return H - 60 * _fscale
 
         _draw_rect(c, 0, 0, W, H, fill=cls.BG)
 
@@ -1171,29 +1172,29 @@ class _NordicClean:
         name = cv_data.get("name", "")
         title = cv_data.get("title", "")
         
-        hy = H - 55
+        hy = H - 55 * _fscale
         hy = _draw_wrapped_header(c, name, MX, hy, "Poppins-Bold", 30, cls.WHITE, MW, 34, dry_run=True, force_family=FF)
-        hy -= 2
+        hy -= 2 * _fscale
         hy = _draw_wrapped_header(c, title, MX, hy, "Poppins-Light", 13, cls.ACCENT2, MW, 16, dry_run=True, force_family=FF)
         
         cy = _draw_wrapped_contact(c, cv_data, MX, hy - 12 * _fscale, MW, "Poppins", 8, cls.ACCENT2, dry_run=True, force_family=FF)
         
-        HEADER_BOT = cy - 20
-        HEADER_H = H - HEADER_BOT
+        HEADER_BOT = cy - 20 * _fscale
+        HEADER_H = H - 12 * _fscale - HEADER_BOT
         
         _draw_rect(c, 0, HEADER_BOT, W, HEADER_H, fill=cls.HEADER_BG)
         _draw_rect(c, 0, HEADER_BOT, 5, HEADER_H, fill=cls.ACCENT)
 
-        hy = H - 55
+        hy = H - 55 * _fscale
         hy = _draw_wrapped_header(c, name, MX, hy, "Poppins-Bold", 30, getattr(cls, 'NAME_COLOR', cls.WHITE), MW, 34, force_family=FF)
-        hy -= 2
+        hy -= 2 * _fscale
         hy = _draw_wrapped_header(c, title, MX, hy, "Poppins-Light", 13, getattr(cls, 'TITLE_COLOR', cls.ACCENT2), MW, 16, force_family=FF)
         _draw_wrapped_contact(c, cv_data, MX, hy - 12 * _fscale, MW, "Poppins", 8, getattr(cls, 'CONTACT_COLOR', cls.ACCENT2), force_family=FF)
 
-        my = HEADER_BOT - 30
+        my = HEADER_BOT - 30 * _fscale
 
         def section_title(t, y):
-            if y < 80: y = new_page()
+            if y < 80 * _fscale: y = new_page()
             _draw_rect(c, MX - 14, y - 2 * _fscale, 4, 14 * _fscale, fill=cls.ACCENT)
             _spaced_string(c, MX, y, t.upper(), "Poppins-Bold", 9, getattr(cls, 'SECTION_TITLE_COLOR', cls.TEXT_DARK), 1.2, force_family=FF)
             c.setStrokeColor(cls.DIVIDER)
@@ -1210,7 +1211,7 @@ class _NordicClean:
         if cv_data.get("experiences"):
             my = section_title(L["experience"], my)
             for exp in cv_data["experiences"]:
-                if my < 100: my = new_page()
+                if my < 100 * _fscale: my = new_page()
                 _draw_rect(c, MX - 18, my + 1 * _fscale, 6 * _fscale, 6 * _fscale, fill=cls.ACCENT, radius=3 * _fscale)
                 c.setFont(_f("Poppins-Bold", FF), 10.5)
                 c.setFillColor(getattr(cls, 'ROLE_COLOR', cls.TEXT_DARK))
@@ -1226,7 +1227,7 @@ class _NordicClean:
                 c.drawString(MX, my, comp)
                 my -= 14 * _fscale
                 for bullet in exp.get("bullets", []):
-                    if my < 45: my = new_page()
+                    if my < 45 * _fscale: my = new_page()
                     bullet_y = my
                     bullet_h = _multiline_height(c, bullet, "Poppins", 8.5, MW - 14, 12, force_family=FF)
                     c.setStrokeColor(cls.ACCENT)
@@ -1239,7 +1240,7 @@ class _NordicClean:
         if cv_data.get("education"):
             my = section_title(L["education"], my)
             for edu in cv_data["education"]:
-                if my < 70: my = new_page()
+                if my < 70 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 10)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, edu.get("degree", ""))
@@ -1254,14 +1255,14 @@ class _NordicClean:
         if cv_data.get("skills", {}).get("categories"):
             my = section_title(L["skills"], my)
             for cat in cv_data["skills"]["categories"]:
-                if my < 60: my = new_page()
+                if my < 60 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 8.5)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, cat.get("name", ""))
                 my -= 12 * _fscale
                 tx = MX
                 for skill in cat.get("items", []):
-                    if my < 50: 
+                    if my < 50 * _fscale: 
                         my = new_page()
                         my = section_title(L["skills"], my)
                         tx = MX
@@ -1472,7 +1473,7 @@ class _TechGrid:
 
         # Education
         if cv_data.get("education"):
-            if my < 120: my = new_page()
+            if my < 120 * _fscale: my = new_page()
             my = section_title(f"// {L['education']}", my)
             for edu in cv_data["education"]:
                 c.setFont(_f("Poppins-Bold", FF), 9.5)
@@ -1645,7 +1646,7 @@ class _LuxurySerif:
         if cv_data.get("experiences"):
             my = section_title("Expérience", my)
             for exp in cv_data["experiences"]:
-                if my < 80: my = new_page()
+                if my < 80 * _fscale: my = new_page()
                 # Role in serif
                 c.setFont(_f("Lora"), 11)
                 c.setFillColor(getattr(cls, 'ROLE_COLOR', cls.TEXT_DARK))
@@ -1661,7 +1662,7 @@ class _LuxurySerif:
                 c.drawString(MX, my, comp)
                 my -= 12 * _fscale
                 for bullet in exp.get("bullets", []):
-                    if my < 80: my = new_page()
+                    if my < 80 * _fscale: my = new_page()
                     c.setFillColor(cls.ACCENT2)
                     c.setFont(_f("Lora"), 9)
                     c.drawString(MX + 2, my + 1.2 * _fscale, "—")
@@ -1674,7 +1675,7 @@ class _LuxurySerif:
 
         # Education
         if cv_data.get("education"):
-            if my < 120: my = new_page()
+            if my < 120 * _fscale: my = new_page()
             my = section_title("Formation", my)
             for edu in cv_data["education"]:
                 c.setFont(_f("Lora"), 10)
@@ -1696,10 +1697,10 @@ class _LuxurySerif:
 
         # Skills — elegant tag layout (prevents overflow)
         if cv_data.get("skills", {}).get("categories"):
-            if my < 100: my = new_page()
+            if my < 100 * _fscale: my = new_page()
             my = section_title("Compétences", my)
             for cat in cv_data["skills"]["categories"]:
-                if my < 60: my = new_page(); my = section_title("Compétences", my)
+                if my < 60 * _fscale: my = new_page(); my = section_title("Compétences", my)
                 c.setFont(_f("Poppins-Bold", FF), 8)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, cat.get("name", "").upper())
@@ -1715,11 +1716,11 @@ class _LuxurySerif:
                         tx = MX
                         my -= 18 * _fscale
                     tag_h = 14 * _fscale
-                    _draw_rect(c, tx, my - 10, sw_tag, tag_h, fill=cls.HEADER_BG, radius=3)
+                    _draw_rect(c, tx, my - 10 * _fscale, sw_tag, tag_h, fill=cls.HEADER_BG, radius=3)
                     c.setFont(_f("Poppins", FF), 7)
                     c.setFillColor(HexColor("#FFFFFF"))
-                    c.drawString(tx + 6, my - 6, skill)
-                    tx += sw_tag + 5
+                    c.drawString(tx + 6, my - 6 * _fscale, skill)
+                    tx += sw_tag + 5 * _fscale
                 my -= 24 * _fscale
 
         # Languages
@@ -2294,11 +2295,11 @@ class _ExecutivePortrait:
                         tx = MX
                         my -= 18 * _fscale
                     tag_h = 14 * _fscale
-                    _draw_rect(c, tx, my - 10, sw_tag, tag_h, fill=cls.HEADER_BG, radius=3)
+                    _draw_rect(c, tx, my - 10 * _fscale, sw_tag, tag_h, fill=cls.HEADER_BG, radius=3)
                     c.setFont(_f("Poppins", FF), 7)
                     c.setFillColor(HexColor("#FFFFFF"))
-                    c.drawString(tx + 6, my - 6, skill)
-                    tx += sw_tag + 5
+                    c.drawString(tx + 6, my - 6 * _fscale, skill)
+                    tx += sw_tag + 5 * _fscale
                 my -= 24 * _fscale
 
         # Languages
@@ -2474,7 +2475,7 @@ class _ModernProfile:
                     if tx + sw_tag > MX + MW:
                         tx = MX
                         my -= 18 * _fscale
-                    _draw_rect(c, tx, my - 10, sw_tag, 14 * _fscale, fill=cls.SIDEBAR_BG, radius=3)
+                    _draw_rect(c, tx, my - 10 * _fscale, sw_tag, 14 * _fscale, fill=cls.SIDEBAR_BG, radius=3)
                     c.setFont(_f("Poppins", FF), 7.5)
                     c.setFillColor(HexColor("#FFFFFF"))
                     c.drawString(tx + 6, my - 6 * _fscale, skill)
@@ -2631,14 +2632,14 @@ class _CreativeVision:
         if cv_data.get("skills", {}).get("categories"):
             my = creative_section(L["skills"], my)
             for cat in cv_data["skills"]["categories"]:
-                if my < 60: my = new_page()
+                if my < 60 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 8)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, cat.get("name", "").upper())
                 my -= 12 * _fscale
                 tx = MX
                 for skill in cat.get("items", []):
-                    if my < 50: 
+                    if my < 50 * _fscale: 
                         my = new_page()
                         my = creative_section(L["skills"], my)
                         tx = MX
@@ -3617,7 +3618,7 @@ class _EliteATS:
         if cv_data.get("experiences"):
             my = section_hr(L["experience"], my)
             for exp in cv_data["experiences"]:
-                if my < 100: my = new_page()
+                if my < 100 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 10)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, exp.get("company", ""))
@@ -3628,7 +3629,7 @@ class _EliteATS:
                 c.drawString(MX, my, exp.get("role", "") + (f" - {exp['location']}" if exp.get('location') else ""))
                 my -= 14 * _fscale
                 for bullet in exp.get("bullets", []):
-                    if my < 40: my = new_page()
+                    if my < 40 * _fscale: my = new_page()
                     bullet_y = my
                     c.setFont(_f("Poppins", FF), 8.5)
                     c.setFillColor(cls.TEXT_DARK)
@@ -3737,7 +3738,7 @@ class _StrategicProfessional:
         if cv_data.get("experiences"):
             my = section_line(L["experience"], my)
             for exp in cv_data["experiences"]:
-                if my < 100: my = new_page()
+                if my < 100 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 11)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, exp.get("role", ""))
@@ -3751,7 +3752,7 @@ class _StrategicProfessional:
                 my -= 14 * _fscale
                 
                 for bullet in exp.get("bullets", []):
-                    if my < 45: my = new_page()
+                    if my < 45 * _fscale: my = new_page()
                     bullet_y = my
                     c.setFont(_f("Poppins-Bold", FF), 8)
                     c.setFillColor(cls.ACCENT)
@@ -3859,7 +3860,7 @@ class _StandardCorporate:
         if cv_data.get("experiences"):
             my = section_hr(L["experience"], my)
             for exp in cv_data["experiences"]:
-                if my < 100: my = new_page()
+                if my < 100 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 10)
                 c.drawString(MX, my, exp.get("company", "").upper())
                 c.drawRightString(MX + MW, my, exp.get("period", ""))
@@ -3868,7 +3869,7 @@ class _StandardCorporate:
                 c.drawString(MX, my, exp.get("role", "") + (f", {exp['location']}" if exp.get('location') else ""))
                 my -= 14 * _fscale
                 for bullet in exp.get("bullets", []):
-                    if my < 40: my = new_page()
+                    if my < 40 * _fscale: my = new_page()
                     bullet_y = my
                     c.setFont(_f("Poppins", FF), 9)
                     c.drawString(MX + 5, bullet_y, "•")
@@ -3971,7 +3972,7 @@ class _StrategicModern:
         if cv_data.get("experiences"):
             my = section_title(L["experience"], my)
             for exp in cv_data["experiences"]:
-                if my < 100: my = new_page()
+                if my < 100 * _fscale: my = new_page()
                 c.setFont(_f("Poppins-Bold", FF), 10.5)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(MX, my, exp.get("role", ""))
@@ -3986,7 +3987,7 @@ class _StrategicModern:
                 my -= 14 * _fscale
                 
                 for bullet in exp.get("bullets", []):
-                    if my < 45: my = new_page()
+                    if my < 45 * _fscale: my = new_page()
                     bullet_y = my
                     # Minimal square bullet
                     _draw_rect(c, MX + 2, bullet_y + 3 * _fscale, 2.5 * _fscale, 2.5 * _fscale, fill=cls.ACCENT)
@@ -4095,7 +4096,7 @@ class _ExecutiveNarrative:
         if cv_data.get("experiences"):
             my = section_block(L["experience"], my)
             for exp in cv_data["experiences"]:
-                if my < 100: my = new_page(); my = section_block(L["experience"], my)
+                if my < 100 * _fscale: my = new_page(); my = section_block(L["experience"], my)
                 c.setFont(_f("Poppins-Bold", FF), 10.5)
                 c.setFillColor(cls.TEXT_DARK)
                 c.drawString(CX, my, exp.get("role", ""))
@@ -4110,7 +4111,7 @@ class _ExecutiveNarrative:
                 my -= 14 * _fscale
                 
                 for bullet in exp.get("bullets", []):
-                    if my < 45: my = new_page(); my = section_block(L["experience"], my)
+                    if my < 45 * _fscale: my = new_page(); my = section_block(L["experience"], my)
                     bullet_y = my
                     c.setFont(_f("Poppins", FF), 9)
                     c.setFillColor(cls.TEXT_MED)

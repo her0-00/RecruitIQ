@@ -392,10 +392,10 @@ Rules:
 - email, phone, location, linkedin, github: copy VERBATIM from CV. null if absent.
 - summary: 3 powerful sentences in ${outputLang} positioning the candidate as the ideal hire. INJECT missing keywords naturally. If seeking alternance/apprentissage and rhythm is mentioned in CV, include it here.
 - experiences: company and location VERBATIM. Translate role to ${outputLang}. STAY TRUTHFUL - do not invent accomplishments or exaggerate.
-- period: FORCED DATE FORMAT. If FR: 'MM/AAAA' (03/2021). If EN: 'YYYY/MM' (2021/03). For current roles, use 'Depuis MM/AAAA' (FR) or 'YYYY/MM - Present' (EN).
+- period: FORCED DATE FORMAT. If FR: 'MM/AAAA' (03/2021). If EN: 'MM/YYYY' (03/2021). For current roles, use 'Depuis MM/AAAA' (FR) or 'MM/YYYY - Present' (EN).
 - rewrite bullets aggressively in ${outputLang}. INJECT missing keywords naturally. DO NOT hallucinate - stay faithful to original content.
 - education: degree/school VERBATIM. 
-- year: FORCED DATE FORMAT. If FR: 'MM/AAAA' (or just AAAA if month absent). If EN: 'YYYY/MM' (or just YYYY).
+- year: FORCED DATE FORMAT. If FR: 'MM/AAAA' (or just AAAA if month absent). If EN: 'MM/YYYY' (or just YYYY).
 - detail = specialization if present, else null.
 - skills: EXACTLY {"categories": [{"name": "...", "items": ["..."]}]}. Max 3 categories. Category names in ${outputLang}. INJECT all missing keywords.
 - languages: EXACTLY [{"lang": "...", "level": "...", "level_num": 1-5}]. ONLY languages from CV. level label in ${outputLang}.
@@ -414,10 +414,10 @@ Rules:
 - email, phone, location, linkedin, github: copy VERBATIM from CV. null if absent.
 - summary: 3 punchy sentences in ${outputLang}. 
 - experiences: company and location VERBATIM. Translate role to ${outputLang}. 
-- period: FORCED DATE FORMAT. If FR: 'MM/AAAA' (03/2021). If EN: 'YYYY/MM' (2021/03). For current roles, use 'Depuis MM/AAAA' (FR) or 'YYYY/MM - Present' (EN).
+- period: FORCED DATE FORMAT. If FR: 'MM/AAAA' (03/2021). If EN: 'MM/YYYY' (03/2021). For current roles, use 'Depuis MM/AAAA' (FR) or 'MM/YYYY - Present' (EN).
 - rewrite bullets in ${outputLang}, stronger.
 - education: degree/school VERBATIM. 
-- year: FORCED DATE FORMAT. If FR: 'MM/AAAA' (or just AAAA if month absent). If EN: 'YYYY/MM' (or just YYYY).
+- year: FORCED DATE FORMAT. If FR: 'MM/AAAA' (or just AAAA if month absent). If EN: 'MM/YYYY' (or just YYYY).
 - detail = specialization if present, else null.
 - skills: EXACTLY {"categories": [{"name": "...", "items": ["..."]}]}. Max 3 categories. Category names in ${outputLang}.
 - languages: EXACTLY [{"lang": "...", "level": "...", "level_num": 1-5}]. ONLY languages from CV. level label in ${outputLang}.
