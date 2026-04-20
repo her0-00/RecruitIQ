@@ -561,6 +561,13 @@ export default function Home() {
     }
   };
 
+  const handleNuclearPurge = () => {
+    if (window.confirm("⚠️ ACTION CRITIQUE : Cette opération va supprimer définitivement l'intégralité de vos données locales (CV, Clés API, Historique). Voulez-vous continuer ?")) {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.reload();
+    }
+  };
 
   return (
     <div className="page-container">
@@ -2593,63 +2600,108 @@ export default function Home() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '12px',
-              marginBottom: '2.5rem',
-              color: 'var(--gold)'
+              gap: '15px',
+              marginBottom: '2rem'
             }}>
-              <ShieldCheck size={28} />
+              <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <ShieldCheck size={28} color="var(--green)" />
+              </div>
               <div style={{ textAlign: 'left' }}>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, letterSpacing: '0.15em', textTransform: 'uppercase' }}>IRIS Privacy Shield</h2>
-                <p style={{ fontSize: '0.65rem', opacity: 0.6, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Conformité RGPD & Protection des Données (v4.1)</p>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text)' }}>
+                  IRIS <span style={{ color: 'var(--green)' }}>Privacy Shield</span>
+                </h2>
+                <p style={{ fontSize: '0.65rem', opacity: 0.6, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text2)' }}>
+                  Conformité RGPD "Zero-Trust" & Protection Avancée (v4.5)
+                </p>
               </div>
             </div>
 
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '2.5rem',
+              gap: '2rem',
               textAlign: 'left',
               marginBottom: '3rem'
             }}>
 
               <div className="privacy-block">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem', color: 'var(--gold-bright)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.8rem', color: 'var(--gold-bright)' }}>
                   <Lock size={18} />
-                  <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Traitement Ephémère</h3>
+                  <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>Protection Éphémère</h3>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text2)', lineHeight: '1.6' }}>
-                  <strong>Engagement 0-Day Retention :</strong> IRIS opère exclusivement en mémoire vive (RAM).
-                  Vos CV, photos et offres d'emploi ne sont jamais enregistrés dans une base de données persistante.
-                  Une fois votre session fermée, les données sont atomiquement purgées.
+                  <strong>Engagement RAM-Only :</strong> Notre backend opère exclusivement en mémoire vive.
+                  Vos fichiers ne touchent jamais de base de données persistante. Une fois la session close, les données sont atomiquement purgées.
                 </p>
               </div>
 
               <div className="privacy-block">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem', color: 'var(--gold-bright)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.8rem', color: 'var(--gold-bright)' }}>
                   <Server size={18} />
-                  <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Flux Sécurisés Cloud</h3>
+                  <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>Flux Chiffrés Cloud</h3>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text2)', lineHeight: '1.6' }}>
-                  <strong>Transit HTTPS/TLS :</strong> Vos données textuelles sont transmises via tunnel sécurisé aux API de <strong>Groq Cloud</strong>
-                  pour l'analyse LLM. Les photos subissent un pré-traitement local sur notre instance temporaire,
-                  et tout fichier résiduel sur disque est supprimé immédiatement après encodage.
+                  <strong>Transit TLS 1.3 :</strong> Les analyses IA transitent via tunnel sécurisé vers les infrastructures de <strong>Groq</strong>, <strong>Google</strong> ou <strong>Mistral AI</strong> selon le modèle sélectionné. 
+                  Vos photos sont encodées localement et aucun résiduel disque n'est conservé.
                 </p>
               </div>
 
               <div className="privacy-block">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem', color: 'var(--gold-bright)' }}>
-                  <Eye size={18} />
-                  <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Vos Droits RGPD</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.8rem', color: 'var(--gold-bright)' }}>
+                  <Globe size={18} />
+                  <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>SIG & Géolocalisation</h3>
                 </div>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text2)', lineHeight: '1.6' }}>
-                  Conformément au règlement (UE) 2016/679, vous disposez d'un droit total d'accès, de rectification,
-                  et d'effacement. L'absence de stockage persistant garantit un <strong>droit à l'oubli automatique</strong>
-                  par simple fermeture du navigateur. Votre clé API Groq reste locale à votre session.
+                  <strong>Respect de l'Anonymat :</strong> La recherche Adzuna et la cartographie CartoDB n'utilisent que les mots-clés saisis. 
+                  Aucun traçage GPS permanent n'est activé sur votre compte.
+                </p>
+              </div>
+
+              <div className="privacy-block">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.8rem', color: 'var(--gold-bright)' }}>
+                  <Eye size={18} />
+                  <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>Souveraineté des Données</h3>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text2)', lineHeight: '1.6' }}>
+                  <strong>Contrôle Local :</strong> Votre CV et vos clés API sont stockés dans le <strong>LocalStorage</strong> de votre navigateur. 
+                  Vous êtes l'unique propriétaire de ces informations à tout instant.
                 </p>
               </div>
 
             </div>
 
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.05)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              marginBottom: '3rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1rem'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#EF4444', margin: '0 0 5px 0' }}>CENTRE DE PURGE SÉCURISÉ</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text2)', margin: 0 }}>Cliquez pour effacer instantanément toute trace de votre passage sur ce terminal.</p>
+              </div>
+              <button 
+                onClick={handleNuclearPurge}
+                className="btn-danger"
+                style={{ 
+                  padding: '10px 24px', 
+                  fontSize: '0.75rem', 
+                  fontWeight: 800, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '10px',
+                  background: 'linear-gradient(135deg, #EF4444 0%, #991B1B 100%)',
+                  boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                <Trash2 size={16} /> PURGER LES DONNÉES LOCALES
+              </button>
+            </div>
             <div style={{
               borderTop: '1px solid var(--border)',
               paddingTop: '2rem',
