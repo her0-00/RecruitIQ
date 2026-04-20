@@ -64,10 +64,10 @@ const GROQ_MODELS = [
 ];
 
 const MISTRAL_MODELS = [
-  'mistral-small-latest',      // Qualité supérieure si besoin
   'mistral-large-latest',      // Puissance maximale (rare)
   'ministral-8b-latest',       // OPTIMAL: rapide + précis pour parsing CV
-  'ministral-3b-latest',       // Ultra rapide fallback     
+  'ministral-3b-latest',       // Ultra rapide fallback  
+  'mistral-small-latest',      // Très rapide fallback pour parsing simple si les autres échouent   
   'open-mistral-nemo'          // Gratuit fallback
 ];
 
