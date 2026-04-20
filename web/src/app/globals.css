@@ -1643,3 +1643,32 @@ textarea.input-field.mono {
     transform: translateY(0);
   }
 }
+
+/* SIG Markers Glow Effect */
+.heat-glow {
+  filter: drop-shadow(0 0 15px var(--gold-glow));
+  animation: marker-pulse 3s infinite ease-in-out;
+  transform-origin: center;
+}
+
+@keyframes marker-pulse {
+  0% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(1.1); }
+  100% { opacity: 0.15; transform: scale(1); }
+}
+
+.leaflet-container {
+  background: #08090E !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--card) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+}

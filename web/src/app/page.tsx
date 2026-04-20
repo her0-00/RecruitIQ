@@ -1,11 +1,17 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { UploadCloud, FileText, CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Download, Play, LayoutTemplate, Wand2, ShieldCheck, Lock, Server, Eye, Trash2, Quote, BookOpen, User, MapPin, Briefcase, GraduationCap, Layout, Check, Search } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Download, Play, LayoutTemplate, Wand2, ShieldCheck, Shield, Globe, Lock, Server, Eye, Trash2, Quote, BookOpen, User, MapPin, Briefcase, GraduationCap, Layout, Check, Search, Zap } from 'lucide-react';
 import { cvExamples } from './examples';
 import OnboardingTour from './OnboardingTour';
 import SimplePDFEditor from './SimplePDFEditor';
 import CVComparison from './CVComparison';
+import dynamic from 'next/dynamic';
+
+const JobMap = dynamic(() => import('./JobMap'), { 
+  ssr: false,
+  loading: () => <div style={{ height: '350px', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)' }}>Initialisation du moteur SIG...</div>
+});
 
 
 const THEME_CATEGORIES = [
@@ -152,6 +158,10 @@ export default function Home() {
   const [newTagInput, setNewTagInput] = useState('');
   const [strictGeoFilter, setStrictGeoFilter] = useState(true);
   const [hasSearched, setHasSearched] = useState(false);
+  const [jobSearchMaxDays, setJobSearchMaxDays] = useState(30);
+  const [jobSearchSortBy, setJobSearchSortBy] = useState('relevance');
+  const [jobSearchCountry, setJobSearchCountry] = useState('fr');
+  const [mapScale, setMapScale] = useState<'world' | 'france'>('world');
   const [showAnalysisSource, setShowAnalysisSource] = useState(false);
   const [atsSimResult, setAtsSimResult] = useState<any>(null);
   const [isSimulatingAts, setIsSimulatingAts] = useState(false);
@@ -343,8 +353,8 @@ export default function Home() {
       const data = await res.json();
       if (data.error) {
         // Show error with suggestion if available
-        const errorMsg = data.suggestion 
-          ? `${data.error}\n\n💡 ${data.suggestion}` 
+        const errorMsg = data.suggestion
+          ? `${data.error}\n\n💡 ${data.suggestion}`
           : data.error;
         throw new Error(errorMsg);
       }
@@ -549,6 +559,28 @@ export default function Home() {
     } finally {
       setIsSearchingJobs(false);
     }
+  };
+
+  const handleApplyToJob = (job: any) => {
+    if (!job.description && !job.title) return;
+
+    // STRUCTURED INPUT FOR THE AUDIT SYSTEM (Metadata-First)
+    const structuredInput = `
+[[DÉTAILS DU POSTE]]
+INTITULÉ : ${job.title.toUpperCase()}
+ENTREPRISE : ${job.company?.display_name || 'ENTREPRISE CONFIDENTIELLE'}
+LIEU : ${job.location?.display_name || jobSearchLocation || 'NON SPÉCIFIÉ'}
+
+[[RÉSUMÉ DE L'OFFRE]]
+${job.description}
+
+--------------------------------------------------
+💡 CONSEIL SYSTÈME : Pour un audit 100% précis, copiez-collez l'intégralité du texte original ici.
+`;
+
+    setJobDesc(structuredInput.trim());
+    setActiveTab('audit');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -852,7 +884,7 @@ export default function Home() {
         </div>{/* sidebar-body */}
       </div>{/* sidebar */}
 
-        {/* MAIN */}
+      {/* MAIN */}
       <div className="main-content" style={{ width: '100%', maxWidth: '100%' }}>
         <div className="hero">
           <div>
@@ -896,7 +928,7 @@ export default function Home() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
                   <AlertTriangle size={32} color={analysisResult.ats_structure_risk === 'CRITICAL' ? '#EF4444' : '#F59E0B'} style={{ flexShrink: 0 }} />
                   <div>
-                    <h3 style={{ 
+                    <h3 style={{
                       color: analysisResult.ats_structure_risk === 'CRITICAL' ? '#EF4444' : '#F59E0B',
                       fontSize: '1.1rem',
                       fontWeight: 900,
@@ -1011,8 +1043,8 @@ export default function Home() {
                 <div className="card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <div className="card-hd" style={{ margin: 0 }}>Market Verdict</div>
-                    <button 
-                      className="btn-outline" 
+                    <button
+                      className="btn-outline"
                       onClick={() => setShowAnalysisSource(!showAnalysisSource)}
                       style={{ fontSize: '0.65rem', padding: '4px 10px', height: 'auto', borderStyle: 'dashed' }}
                     >
@@ -1040,7 +1072,7 @@ export default function Home() {
                           </div>
                           <div style={{ fontSize: '0.75rem', fontFamily: 'serif', lineHeight: '1.5' }}>
                             {getLinesContext(cvText, analysisResult.grounding.top_strength.line).map((l, i) => (
-                              <div key={i} style={{ 
+                              <div key={i} style={{
                                 background: l.isTarget ? 'rgba(14,165,233,0.1)' : 'transparent',
                                 borderLeft: l.isTarget ? '2px solid #0EA5E9' : 'none',
                                 paddingLeft: l.isTarget ? '6px' : '8px',
@@ -1073,7 +1105,7 @@ export default function Home() {
                           </div>
                           <div style={{ fontSize: '0.75rem', fontFamily: 'serif', lineHeight: '1.5' }}>
                             {getLinesContext(cvText, analysisResult.grounding.pourquoi_ignore.line).map((l, i) => (
-                              <div key={i} style={{ 
+                              <div key={i} style={{
                                 background: l.isTarget ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
                                 borderLeft: l.isTarget ? '2px solid #EF4444' : 'none',
                                 paddingLeft: l.isTarget ? '6px' : '8px',
@@ -1100,10 +1132,10 @@ export default function Home() {
                         const lineNum = idx + 1;
                         const isRisk = analysisResult.grounding?.pourquoi_ignore?.line === lineNum;
                         const isStrength = analysisResult.grounding?.top_strength?.line === lineNum;
-                        
+
                         return (
-                          <div key={idx} style={{ 
-                            display: 'flex', 
+                          <div key={idx} style={{
+                            display: 'flex',
                             gap: '20px',
                             background: isRisk ? 'rgba(239, 68, 68, 0.1)' : isStrength ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
                             marginLeft: '-20px',
@@ -1113,19 +1145,19 @@ export default function Home() {
                             position: 'relative'
                           }}>
                             {(isRisk || isStrength) && (
-                              <div style={{ 
-                                position: 'absolute', 
-                                left: 0, 
-                                top: 0, 
-                                bottom: 0, 
-                                width: '4px', 
-                                background: isRisk ? '#EF4444' : '#10B981' 
+                              <div style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: '4px',
+                                background: isRisk ? '#EF4444' : '#10B981'
                               }} />
                             )}
-                            
+
                             <div style={{ width: '40px', textAlign: 'right', opacity: 0.2, userSelect: 'none', fontSize: '0.7rem' }}>{lineNum}</div>
                             <div style={{ flex: 1 }}>{line || ' '}</div>
-                            
+
                             {isRisk && <span style={{ fontSize: '0.6rem', color: '#EF4444', fontWeight: 900, background: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: '4px', height: 'fit-content', marginTop: '4px' }}>RISK</span>}
                             {isStrength && <span style={{ fontSize: '0.6rem', color: '#10B981', fontWeight: 900, background: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px', height: 'fit-content', marginTop: '4px' }}>STRENGTH</span>}
                           </div>
@@ -1142,11 +1174,11 @@ export default function Home() {
                     {analysisResult.detailed_report.map((report: any, idx: number) => (
                       <div key={idx} className="card" style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--border)' }}>
                         <div style={{ background: 'var(--surface-subtle)', padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          {report.category.includes('Identité') || report.category.includes('Projet') ? <User size={16} color="var(--gold)" /> : 
-                           report.category.includes('Mobilité') || report.category.includes('Coordonnées') ? <MapPin size={16} color="var(--gold)" /> :
-                           report.category.includes('Expériences') ? <Briefcase size={16} color="var(--gold)" /> :
-                           report.category.includes('Formations') ? <GraduationCap size={16} color="var(--gold)" /> :
-                           <Layout size={16} color="var(--gold)" />}
+                          {report.category.includes('Identité') || report.category.includes('Projet') ? <User size={16} color="var(--gold)" /> :
+                            report.category.includes('Mobilité') || report.category.includes('Coordonnées') ? <MapPin size={16} color="var(--gold)" /> :
+                              report.category.includes('Expériences') ? <Briefcase size={16} color="var(--gold)" /> :
+                                report.category.includes('Formations') ? <GraduationCap size={16} color="var(--gold)" /> :
+                                  <Layout size={16} color="var(--gold)" />}
                           <span style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{report.category}</span>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
@@ -1196,8 +1228,8 @@ export default function Home() {
                   <div className="card" style={{ marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
                     <div className="card-hd" style={{ fontSize: '0.7rem' }}>✍️ Verdict Orthographique</div>
                     <p style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text2)' }}>
-                      "{typeof analysisResult.orthography_verdict === 'string' 
-                        ? analysisResult.orthography_verdict 
+                      "{typeof analysisResult.orthography_verdict === 'string'
+                        ? analysisResult.orthography_verdict
                         : analysisResult.orthography_verdict.verdict || JSON.stringify(analysisResult.orthography_verdict)}"
                     </p>
                   </div>
@@ -1207,19 +1239,19 @@ export default function Home() {
                 {(() => {
                   const missingReqs = analysisResult.missing_keywords || [];
                   const cvTextNorm = (cvText || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
-                  
-                  const penalties: {keyword: string, reason: string}[] = [];
+
+                  const penalties: { keyword: string, reason: string }[] = [];
                   const absoluteMissing: string[] = [];
 
                   missingReqs.forEach((req: string) => {
                     const normReq = req.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim();
                     if (!normReq) return;
-                    
+
                     if (cvTextNorm.includes(normReq.replace(/\s/g, ''))) {
                       penalties.push({ keyword: req, reason: `Présent mais mal formaté (espacement ou typo).` });
                       return;
                     }
-                    
+
                     const reqWords = normReq.split(/\s+/).filter(w => w.length >= 3);
                     if (reqWords.length > 1) {
                       let matched = 0;
@@ -1234,14 +1266,14 @@ export default function Home() {
                         return;
                       }
                     }
-                    
+
                     absoluteMissing.push(req);
                   });
 
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
                       <div className="card-hd" style={{ fontSize: '0.9rem', margin: 0, paddingBottom: '0.5rem', borderBottom: '1px solid var(--border)' }}>🔍 Analyse Différentielle Sémantique</div>
-                      
+
                       {/* VALIDATED (PRESENT) */}
                       <div className="card" style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
                         <div className="card-hd" style={{ color: '#10B981', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
@@ -1345,16 +1377,16 @@ export default function Home() {
             {/* TAB: COMPARE & ATS */}
             {activeTab === 'compare' && (
               <div>
-                <CVComparison 
-                  originalCV={cvText} 
-                  optimizedCV={analysisResult?._cv_data || (editedCvDataJSON ? JSON.parse(editedCvDataJSON) : null)} 
+                <CVComparison
+                  originalCV={cvText}
+                  optimizedCV={analysisResult?._cv_data || (editedCvDataJSON ? JSON.parse(editedCvDataJSON) : null)}
                 />
-                
+
                 {pdfData && (
                   <div style={{ marginTop: '2rem' }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
                       alignItems: 'center',
                       marginBottom: '1rem'
                     }}>
@@ -1384,17 +1416,17 @@ export default function Home() {
                         {isSimulatingAts ? 'Simulation...' : '⚡ Simuler ATS'}
                       </button>
                     </div>
-                    
+
                     {atsSimResult && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         {/* ATS Score HERO */}
-                        <div style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
                           justifyContent: 'center',
                           gap: '3rem',
                           flexWrap: 'wrap',
-                          padding: '2.5rem 2rem', 
+                          padding: '2.5rem 2rem',
                           background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.2) 100%)',
                           border: `1px solid ${atsSimResult.ats_score >= 90 ? 'rgba(16, 185, 129, 0.3)' : atsSimResult.ats_score >= 70 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
                           borderRadius: 'var(--r-lg)',
@@ -1403,14 +1435,14 @@ export default function Home() {
                           <div style={{ position: 'relative', width: '160px', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <svg height="160" width="160" style={{ transform: 'rotate(-90deg)', position: 'absolute' }}>
                               <circle stroke="rgba(255,255,255,0.05)" fill="transparent" strokeWidth="12" r="68" cx="80" cy="80" />
-                              <circle 
-                                stroke={atsSimResult.ats_score >= 90 ? '#10B981' : atsSimResult.ats_score >= 70 ? '#F59E0B' : '#EF4444'} 
-                                fill="transparent" 
-                                strokeWidth="12" 
-                                strokeLinecap="round" 
-                                strokeDasharray={68 * 2 * Math.PI} 
-                                style={{ strokeDashoffset: (68 * 2 * Math.PI) - ((atsSimResult.ats_score / 100) * (68 * 2 * Math.PI)), transition: 'stroke-dashoffset 1.5s ease-out' }} 
-                                r="68" cx="80" cy="80" 
+                              <circle
+                                stroke={atsSimResult.ats_score >= 90 ? '#10B981' : atsSimResult.ats_score >= 70 ? '#F59E0B' : '#EF4444'}
+                                fill="transparent"
+                                strokeWidth="12"
+                                strokeLinecap="round"
+                                strokeDasharray={68 * 2 * Math.PI}
+                                style={{ strokeDashoffset: (68 * 2 * Math.PI) - ((atsSimResult.ats_score / 100) * (68 * 2 * Math.PI)), transition: 'stroke-dashoffset 1.5s ease-out' }}
+                                r="68" cx="80" cy="80"
                               />
                             </svg>
                             <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1419,11 +1451,11 @@ export default function Home() {
                             </div>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <h3 style={{ 
-                              margin: 0, 
-                              fontSize: '1.8rem', 
-                              fontWeight: 900, 
-                              color: atsSimResult.ats_score >= 90 ? '#10B981' : atsSimResult.ats_score >= 70 ? '#F59E0B' : '#EF4444' 
+                            <h3 style={{
+                              margin: 0,
+                              fontSize: '1.8rem',
+                              fontWeight: 900,
+                              color: atsSimResult.ats_score >= 90 ? '#10B981' : atsSimResult.ats_score >= 70 ? '#F59E0B' : '#EF4444'
                             }}>
                               {atsSimResult.verdict.split(' - ')[0]}
                             </h3>
@@ -1433,7 +1465,7 @@ export default function Home() {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Premium Metrics Grid */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                           <div style={{ padding: '1.2rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -1443,7 +1475,7 @@ export default function Home() {
                               <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)' }}>Mots Extraits</div>
                             </div>
                           </div>
-                          
+
                           <div style={{ padding: '1.2rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: '15px' }}>
                             <div style={{ padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}><Layout size={20} color="var(--gold)" /></div>
                             <div>
@@ -1461,7 +1493,7 @@ export default function Home() {
                               <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)' }}>Contact Email</div>
                             </div>
                           </div>
-                          
+
                           <div style={{ padding: '1.2rem', background: atsSimResult.metrics.has_phone ? 'rgba(16, 185, 129, 0.05)' : 'rgba(251, 191, 36, 0.05)', border: `1px solid ${atsSimResult.metrics.has_phone ? 'rgba(16, 185, 129, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`, borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: '15px' }}>
                             <div style={{ padding: '12px', background: atsSimResult.metrics.has_phone ? 'rgba(16, 185, 129, 0.1)' : 'rgba(251, 191, 36, 0.1)', borderRadius: '12px' }}>
                               {atsSimResult.metrics.has_phone ? <Check size={20} color="#10B981" /> : <AlertTriangle size={20} color="#F59E0B" />}
@@ -1472,10 +1504,10 @@ export default function Home() {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Segmented Diagnostics */}
                         <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                          
+
                           {/* Errors */}
                           {atsSimResult.issues.filter((i: string) => i.startsWith('❌')).length > 0 && (
                             <div style={{ flex: '1 1 300px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
@@ -1527,7 +1559,7 @@ export default function Home() {
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Extracted Text Parsing Engine Simulation */}
                         <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--surface)' }}>
                           <div style={{ margin: 0, padding: '1rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1541,34 +1573,34 @@ export default function Home() {
                               <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }}></span>
                             </div>
                           </div>
-                          
+
                           <div style={{ display: 'flex', flexWrap: 'wrap' }}>
                             {/* Raw Parse JSON Overlay */}
                             <div style={{ flex: '1 1 300px', padding: '1.5rem', background: '#09090b', borderRight: '1px solid var(--border)', fontFamily: 'Space Mono, monospace', fontSize: '0.7rem', lineHeight: '1.8' }}>
                               <div style={{ color: '#a1a1aa', marginBottom: '1rem' }}>{`> INITIALIZING NLP PARSER...`}</div>
                               <div style={{ color: '#10B981' }}>{`> PDF CONVERTED TO TXT [SUCCESS]`}</div>
                               <div style={{ color: '#10B981' }}>{`> WORDS FOUND: ${atsSimResult.metrics.word_count}`}</div>
-                              <br/>
+                              <br />
                               <div style={{ color: '#d4d4d8' }}>{`struct MAPPING {`}</div>
                               <div style={{ color: '#d4d4d8', paddingLeft: '1rem' }}>
-                                {`CONTACT_EMAIL = `}<span style={{ color: atsSimResult.metrics.has_email ? '#10B981' : '#EF4444' }}>{atsSimResult.metrics.has_email ? 'FOUND' : 'NULL'}</span><br/>
-                                {`CONTACT_PHONE = `}<span style={{ color: atsSimResult.metrics.has_phone ? '#10B981' : '#F59E0B' }}>{atsSimResult.metrics.has_phone ? 'FOUND' : 'NULL'}</span><br/>
-                                {`SEC_EXPERIENCE = `}<span style={{ color: atsSimResult.metrics.sections_detected?.experience ? '#10B981' : '#EF4444' }}>{atsSimResult.metrics.sections_detected?.experience ? 'MAPPED' : 'FAIL'}</span><br/>
-                                {`SEC_EDUCATION = `}<span style={{ color: atsSimResult.metrics.sections_detected?.education ? '#10B981' : '#F59E0B' }}>{atsSimResult.metrics.sections_detected?.education ? 'MAPPED' : 'WARN'}</span><br/>
-                                {`SEC_SUMMARY = `}<span style={{ color: atsSimResult.metrics.sections_detected?.summary ? '#10B981' : '#d4d4d8' }}>{atsSimResult.metrics.sections_detected?.summary ? 'MAPPED' : 'NULL'}</span><br/>
+                                {`CONTACT_EMAIL = `}<span style={{ color: atsSimResult.metrics.has_email ? '#10B981' : '#EF4444' }}>{atsSimResult.metrics.has_email ? 'FOUND' : 'NULL'}</span><br />
+                                {`CONTACT_PHONE = `}<span style={{ color: atsSimResult.metrics.has_phone ? '#10B981' : '#F59E0B' }}>{atsSimResult.metrics.has_phone ? 'FOUND' : 'NULL'}</span><br />
+                                {`SEC_EXPERIENCE = `}<span style={{ color: atsSimResult.metrics.sections_detected?.experience ? '#10B981' : '#EF4444' }}>{atsSimResult.metrics.sections_detected?.experience ? 'MAPPED' : 'FAIL'}</span><br />
+                                {`SEC_EDUCATION = `}<span style={{ color: atsSimResult.metrics.sections_detected?.education ? '#10B981' : '#F59E0B' }}>{atsSimResult.metrics.sections_detected?.education ? 'MAPPED' : 'WARN'}</span><br />
+                                {`SEC_SUMMARY = `}<span style={{ color: atsSimResult.metrics.sections_detected?.summary ? '#10B981' : '#d4d4d8' }}>{atsSimResult.metrics.sections_detected?.summary ? 'MAPPED' : 'NULL'}</span><br />
                                 {`SEC_SKILLS = `}<span style={{ color: atsSimResult.metrics.sections_detected?.skills ? '#10B981' : '#d4d4d8' }}>{atsSimResult.metrics.sections_detected?.skills ? 'MAPPED' : 'NULL'}</span>
                               </div>
                               <div style={{ color: '#d4d4d8' }}>{`}`}</div>
-                              <br/>
+                              <br />
                               <div style={{ color: '#a1a1aa' }}>{`> COMMENCING RAW TXT EXTRACTION...`}</div>
                             </div>
-                            
+
                             {/* Extracted Text Actual content */}
-                            <div style={{ 
-                              flex: '2 1 400px', 
-                              padding: '1.5rem', 
-                              fontFamily: 'monospace', 
-                              fontSize: '0.75rem', 
+                            <div style={{
+                              flex: '2 1 400px',
+                              padding: '1.5rem',
+                              fontFamily: 'monospace',
+                              fontSize: '0.75rem',
                               lineHeight: '1.6',
                               maxHeight: '400px',
                               overflowY: 'auto',
@@ -1584,13 +1616,13 @@ export default function Home() {
                     )}
                   </div>
                 )}
-                
+
                 {!pdfData && (
-                  <div style={{ 
-                    marginTop: '2rem', 
-                    padding: '2rem', 
-                    background: 'var(--surface)', 
-                    border: '1px solid var(--border)', 
+                  <div style={{
+                    marginTop: '2rem',
+                    padding: '2rem',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
                     borderRadius: 'var(--r-md)',
                     textAlign: 'center'
                   }}>
@@ -1708,10 +1740,10 @@ export default function Home() {
                       setJsonError(err.message);
                     }
                   }}
-                  style={{ 
-                    fontSize: '0.7rem', 
-                    padding: '1rem', 
-                    lineHeight: '1.4', 
+                  style={{
+                    fontSize: '0.7rem',
+                    padding: '1rem',
+                    lineHeight: '1.4',
                     background: 'var(--surface)',
                     border: jsonError ? '1px solid #EF4444' : '1px solid var(--border)'
                   }}
@@ -1748,10 +1780,10 @@ export default function Home() {
                   <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
                     <div style={{ flex: '1 1 200px' }}>
                       <label style={{ fontSize: '0.65rem', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', display: 'block' }}>Quoi ? (Poste/Métier)</label>
-                      <input 
-                        type="text" 
-                        className="input-field" 
-                        placeholder="Ex: Développeur React" 
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="Ex: Développeur React"
                         value={jobSearchQuery}
                         onChange={(e) => setJobSearchQuery(e.target.value)}
                         style={{ width: '100%' }}
@@ -1759,10 +1791,10 @@ export default function Home() {
                     </div>
                     <div style={{ flex: '1 1 150px' }}>
                       <label style={{ fontSize: '0.65rem', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', display: 'block' }}>Entreprise</label>
-                      <input 
-                        type="text" 
-                        className="input-field" 
-                        placeholder="Ex: L'Oréal, Google..." 
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="Ex: L'Oréal, Google..."
                         value={jobSearchCompany}
                         onChange={(e) => setJobSearchCompany(e.target.value)}
                         style={{ width: '100%' }}
@@ -1770,10 +1802,10 @@ export default function Home() {
                     </div>
                     <div style={{ width: '150px' }}>
                       <label style={{ fontSize: '0.65rem', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', display: 'block' }}>Où ? (Lieu)</label>
-                      <input 
-                        type="text" 
-                        className="input-field" 
-                        placeholder="Ex: France" 
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="Ex: France"
                         value={jobSearchLocation}
                         onChange={(e) => setJobSearchLocation(e.target.value)}
                         style={{ width: '100%' }}
@@ -1781,8 +1813,8 @@ export default function Home() {
                     </div>
                     <div style={{ width: '160px' }}>
                       <label style={{ fontSize: '0.65rem', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', display: 'block' }}>Type de contrat</label>
-                      <select 
-                        className="input-field" 
+                      <select
+                        className="input-field"
                         value={jobSearchContractType}
                         onChange={(e) => setJobSearchContractType(e.target.value)}
                         style={{ width: '100%', cursor: 'pointer' }}
@@ -1793,231 +1825,363 @@ export default function Home() {
                         <option value="part_time">Temps partiel</option>
                       </select>
                     </div>
+                    <div style={{ width: '130px' }}>
+                      <label style={{ fontSize: '0.65rem', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', display: 'block' }}>📅 Fraîcheur</label>
+                      <select
+                        className="input-field"
+                        value={jobSearchMaxDays}
+                        onChange={(e) => setJobSearchMaxDays(parseInt(e.target.value))}
+                        style={{ width: '100%', cursor: 'pointer' }}
+                      >
+                        <option value={30}>30 jours</option>
+                        <option value={7}>7 jours</option>
+                        <option value={3}>3 jours</option>
+                        <option value={1}>24 heures</option>
+                      </select>
+                    </div>
+                    <div style={{ width: '140px' }}>
+                      <label style={{ fontSize: '0.65rem', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', display: 'block' }}>🌎 Territoire</label>
+                      <select
+                        className="input-field"
+                        value={jobSearchCountry}
+                        onChange={(e) => setJobSearchCountry(e.target.value)}
+                        style={{ height: '36px', fontSize: '0.8rem', background: 'rgba(255,255,255,0.05)' }}
+                      >
+                        <option value="fr">🇫🇷 France</option>
+                        <option value="gb">🇬🇧 Royaume-Uni</option>
+                        <option value="us">🇺🇸 USA</option>
+                        <option value="de">🇩🇪 Allemagne</option>
+                        <option value="ca">🇨🇦 Canada</option>
+                        <option value="be">🇧🇪 Belgique</option>
+                        <option value="ch">🇨🇭 Suisse</option>
+                        <option value="it">🇮🇹 Italie</option>
+                        <option value="es">🇪🇸 Espagne</option>
+                      </select>
+                    </div>
+                    <div style={{ width: '140px' }}>
+                      <label style={{ fontSize: '0.65rem', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', display: 'block' }}> Trier par</label>
+                      <select
+                        className="input-field"
+                        value={jobSearchSortBy}
+                        onChange={(e) => setJobSearchSortBy(e.target.value)}
+                        style={{ width: '100%', cursor: 'pointer' }}
+                      >
+                        <option value="relevance">Pertinence</option>
+                        <option value="date">Date</option>
+                      </select>
+                    </div>
                   </div>
-                  
+
                   {/* RECHERCHE AVANCEE - Semantic tags éditables */}
                   <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed var(--border)' }}>
-                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                       <label style={{ fontSize: '0.65rem', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>✨ Match Sémantique</label>
-                       <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.65rem', color: strictGeoFilter ? 'var(--green)' : 'var(--text3)', cursor: 'pointer' }}>
-                         <input type="checkbox" checked={strictGeoFilter} onChange={e => setStrictGeoFilter(e.target.checked)} style={{ width: 12, height: 12 }} />
-                         Filtre géo strict (France uniquement)
-                       </label>
-                     </div>
-                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '8px' }}>
-                        {/* Tags IA */}
-                        {(analysisResult?.present_keywords || []).map((kw: string) => (
-                           <span key={'ai-' + kw} style={{ background: 'rgba(200,169,110,0.1)', border: '1px solid var(--gold)', color: 'var(--gold)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                             {kw}
-                           </span>
-                        ))}
-                        {/* Tags personnalisés */}
-                        {customSemanticTags.map((tag: string) => (
-                           <span key={'custom-' + tag} style={{ background: 'rgba(99,179,237,0.1)', border: '1px solid var(--cyan)', color: 'var(--cyan)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                             {tag}
-                             <button onClick={() => setCustomSemanticTags(prev => prev.filter(t => t !== tag))} style={{ background: 'none', border: 'none', color: 'var(--cyan)', cursor: 'pointer', fontSize: '0.7rem', padding: 0, lineHeight: 1 }}>×</button>
-                           </span>
-                        ))}
-                        {(!analysisResult?.present_keywords && customSemanticTags.length === 0) && (
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text3)', fontStyle: 'italic' }}>Ajoutez des compétences pour affiner le matching...</span>
-                        )}
-                     </div>
-                     {/* Input ajout de tag */}
-                     <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                       <input
-                         type="text"
-                         className="input-field"
-                         placeholder="+ Ajouter compétence (ex: Power BI)"
-                         value={newTagInput}
-                         onChange={e => setNewTagInput(e.target.value)}
-                         onKeyDown={e => {
-                           if (e.key === 'Enter' && newTagInput.trim()) {
-                             setCustomSemanticTags(prev => [...new Set([...prev, newTagInput.trim()])]);
-                             setNewTagInput('');
-                           }
-                         }}
-                         style={{ flex: 1, fontSize: '0.75rem', padding: '4px 8px' }}
-                       />
-                       <button
-                         onClick={() => { if (newTagInput.trim()) { setCustomSemanticTags(prev => [...new Set([...prev, newTagInput.trim()])]); setNewTagInput(''); } }}
-                         style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--cyan)', background: 'rgba(99,179,237,0.1)', color: 'var(--cyan)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
-                       >+</button>
-                     </div>
-                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                       <button 
-                         className="btn-primary"
-                         disabled={isSearchingJobs}
-                          style={{ marginLeft: 'auto', background: 'var(--gold)', color: '#000', fontWeight: 800, minWidth: '150px' }}
-                          onClick={async () => {
-                            if (!jobSearchQuery) return;
-                            setIsSearchingJobs(true);
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '0.65rem', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>✨ Match Sémantique</label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.65rem', color: strictGeoFilter ? 'var(--green)' : 'var(--text3)', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={strictGeoFilter} onChange={e => setStrictGeoFilter(e.target.checked)} style={{ width: 12, height: 12 }} />
+                        Filtre géo strict (France uniquement)
+                      </label>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '8px' }}>
+                      {/* Tags IA */}
+                      {(analysisResult?.present_keywords || []).map((kw: string) => (
+                        <span key={'ai-' + kw} style={{ background: 'rgba(200,169,110,0.1)', border: '1px solid var(--gold)', color: 'var(--gold)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {kw}
+                        </span>
+                      ))}
+                      {/* Tags personnalisés */}
+                      {customSemanticTags.map((tag: string) => (
+                        <span key={'custom-' + tag} style={{ background: 'rgba(99,179,237,0.1)', border: '1px solid var(--cyan)', color: 'var(--cyan)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {tag}
+                          <button onClick={() => setCustomSemanticTags(prev => prev.filter(t => t !== tag))} style={{ background: 'none', border: 'none', color: 'var(--cyan)', cursor: 'pointer', fontSize: '0.7rem', padding: 0, lineHeight: 1 }}>×</button>
+                        </span>
+                      ))}
+                      {(!analysisResult?.present_keywords && customSemanticTags.length === 0) && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text3)', fontStyle: 'italic' }}>Ajoutez des compétences pour affiner le matching...</span>
+                      )}
+                    </div>
+                    {/* Input ajout de tag */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="+ Ajouter compétence (ex: Power BI)"
+                        value={newTagInput}
+                        onChange={e => setNewTagInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && newTagInput.trim()) {
+                            setCustomSemanticTags(prev => [...new Set([...prev, newTagInput.trim()])]);
+                            setNewTagInput('');
+                          }
+                        }}
+                        style={{ flex: 1, fontSize: '0.75rem', padding: '4px 8px' }}
+                      />
+                      <button
+                        onClick={() => { if (newTagInput.trim()) { setCustomSemanticTags(prev => [...new Set([...prev, newTagInput.trim()])]); setNewTagInput(''); } }}
+                        style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--cyan)', background: 'rgba(99,179,237,0.1)', color: 'var(--cyan)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                      >+</button>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                      <button
+                        className="btn-primary"
+                        disabled={isSearchingJobs}
+                        style={{ marginLeft: 'auto', background: 'var(--gold)', color: '#000', fontWeight: 800, minWidth: '150px' }}
+                        onClick={async () => {
+                          if (!jobSearchQuery) return;
+                          setIsSearchingJobs(true);
+
+                          // Smart Country Detection
+                          let finalCountry = jobSearchCountry;
+                          const locLower = (jobSearchLocation || '').toLowerCase();
+                          if (locLower.includes('london') || locLower.includes('uk') || locLower.includes('royaume-uni')) finalCountry = 'gb';
+                          else if (locLower.includes('usa') || locLower.includes('nyc') || locLower.includes('states') || locLower.includes('york')) finalCountry = 'us';
+                          else if (locLower.includes('berlin') || locLower.includes('germany') || locLower.includes('allemagne')) finalCountry = 'de';
+                          else if (locLower.includes('canada') || locLower.includes('montreal') || locLower.includes('toronto')) finalCountry = 'ca';
+
+                          try {
+                            const res = await fetch('/api/job-search', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                  keywords: jobSearchQuery,
+                                  location: jobSearchLocation,
+                                  appId: adzunaAppId,
+                                  appKey: adzunaAppKey,
+                                  contractType: jobSearchContractType,
+                                  company: jobSearchCompany,
+                                  max_days_old: jobSearchMaxDays,
+                                  sort_by: jobSearchSortBy,
+                                  country: finalCountry
+                                })
+                            });
+                            const data = await res.json();
+                            if (data.error) throw new Error(data.error);
+
+                            // 🚀 0-TOKEN MATCH ALGORITHM V2 🚀
+
+                            // HTML entity decoder
+                            const decodeHTML = (str: string) => str
+                              .replace(/&eacute;/gi, 'é').replace(/&egrave;/gi, 'è').replace(/&ecirc;/gi, 'ê')
+                              .replace(/&agrave;/gi, 'à').replace(/&acirc;/gi, 'â').replace(/&ccedil;/gi, 'ç')
+                              .replace(/&ocirc;/gi, 'ô').replace(/&iuml;/gi, 'ï').replace(/&oe;/gi, 'œ')
+                              .replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+                              .replace(/&nbsp;/gi, ' ').replace(/&#\d+;/gi, ' ').replace(/&[a-z]+;/gi, ' ');
+
+                            // Semantic synonyms for better matching
+                            const SYNONYMS: Record<string, string[]> = {
+                              'sql': ['postgresql', 'mysql', 'sqlite', 'base de données', 'database'],
+                              'python': ['pandas', 'numpy', 'scikit', 'sklearn', 'seaborn'],
+                              'power bi': ['powerbi', 'dax', 'power query', 'tableau de bord'],
+                              'machine learning': ['ml ', 'apprentissage automatique', 'modèle prédictif'],
+                              'javascript': ['typescript', 'react', 'node.js', 'nodejs'],
+                              'excel': ['vba', 'macros', 'spreadsheet'],
+                              'rag': ['retrieval augmented', 'langchain', 'llm', 'vector'],
+                              'cloud': ['aws', 'azure', 'gcp', 'google cloud'],
+                              'etl': ['pipeline de données', 'data pipeline', 'ingestion'],
+                              'docker': ['kubernetes', 'conteneur', 'container'],
+                            };
+
+                            // Extract skills from CV JSON directly (no AI needed)
+                            const cvSkillsFromAI: string[] = analysisResult?.present_keywords || [];
+                            const cvSkillsFromJSON: string[] = [];
                             try {
-                              const res = await fetch('/api/job-search', {
-                                 method: 'POST',
-                                 headers: { 'Content-Type': 'application/json' },
-                                 body: JSON.stringify({ 
-                                    keywords: jobSearchQuery, 
-                                    location: jobSearchLocation, 
-                                    appId: adzunaAppId, 
-                                    appKey: adzunaAppKey,
-                                    contractType: jobSearchContractType,
-                                    company: jobSearchCompany
-                                 })
-                              });
-                              const data = await res.json();
-                              if (data.error) throw new Error(data.error);
+                              const cvJSON = editedCvDataJSON ? JSON.parse(editedCvDataJSON) : null;
+                              if (cvJSON?.skills?.categories) {
+                                cvJSON.skills.categories.forEach((cat: any) => {
+                                  (cat.items || []).forEach((item: string) => cvSkillsFromJSON.push(item));
+                                });
+                              }
+                              if (cvJSON?.title) {
+                                cvJSON.title.split(/\s+/).forEach((w: string) => { if (w.length > 3) cvSkillsFromJSON.push(w); });
+                              }
+                            } catch { }
 
-                              // 🚀 0-TOKEN MATCH ALGORITHM V2 🚀
+                            const allCvSkills = [...new Set([...cvSkillsFromAI, ...cvSkillsFromJSON, ...customSemanticTags])];
+                            const cvTitle = (jobSearchQuery || '').toLowerCase();
 
-                              // HTML entity decoder
-                              const decodeHTML = (str: string) => str
-                                .replace(/&eacute;/gi, 'é').replace(/&egrave;/gi, 'è').replace(/&ecirc;/gi, 'ê')
-                                .replace(/&agrave;/gi, 'à').replace(/&acirc;/gi, 'â').replace(/&ccedil;/gi, 'ç')
-                                .replace(/&ocirc;/gi, 'ô').replace(/&iuml;/gi, 'ï').replace(/&oe;/gi, 'œ')
-                                .replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
-                                .replace(/&nbsp;/gi, ' ').replace(/&#\d+;/gi, ' ').replace(/&[a-z]+;/gi, ' ');
+                            // 🌍 Villes hors-France à filtrer
+                            const NON_FRANCE_CITIES = [
+                              'casablanca', 'rabat', 'marrakech', 'fès', 'fez', 'tanger', 'agadir', 'maroc',
+                              'tunis', 'sfax', 'sousse', 'tunisie', 'alger', 'oran', 'algérie', 'algerie',
+                              'dakar', 'abidjan', 'lomé', 'douala', 'yaoundé', 'genève', 'geneve', 'zurich',
+                              'bruxelles', 'montreal', 'québec', 'dubai', 'lausanne', 'berne',
+                            ];
 
-                              // Semantic synonyms for better matching
-                              const SYNONYMS: Record<string, string[]> = {
-                                'sql': ['postgresql', 'mysql', 'sqlite', 'base de données', 'database'],
-                                'python': ['pandas', 'numpy', 'scikit', 'sklearn', 'seaborn'],
-                                'power bi': ['powerbi', 'dax', 'power query', 'tableau de bord'],
-                                'machine learning': ['ml ', 'apprentissage automatique', 'modèle prédictif'],
-                                'javascript': ['typescript', 'react', 'node.js', 'nodejs'],
-                                'excel': ['vba', 'macros', 'spreadsheet'],
-                                'rag': ['retrieval augmented', 'langchain', 'llm', 'vector'],
-                                'cloud': ['aws', 'azure', 'gcp', 'google cloud'],
-                                'etl': ['pipeline de données', 'data pipeline', 'ingestion'],
-                                'docker': ['kubernetes', 'conteneur', 'container'],
-                              };
+                            const scoredJobs = (data || []).map((job: any) => {
+                              let score = 0;
+                              let matchedSkills: string[] = [];
+                              const rawDesc = decodeHTML(job.description || '');
+                              const desc = rawDesc.toLowerCase();
+                              const rawTitle = (job.title || '').toLowerCase();
 
-                              // Extract skills from CV JSON directly (no AI needed)
-                              const cvSkillsFromAI: string[] = analysisResult?.present_keywords || [];
-                              const cvSkillsFromJSON: string[] = [];
-                              try {
-                                const cvJSON = editedCvDataJSON ? JSON.parse(editedCvDataJSON) : null;
-                                if (cvJSON?.skills?.categories) {
-                                  cvJSON.skills.categories.forEach((cat: any) => {
-                                    (cat.items || []).forEach((item: string) => cvSkillsFromJSON.push(item));
-                                  });
-                                }
-                                if (cvJSON?.title) {
-                                  cvJSON.title.split(/\s+/).forEach((w: string) => { if (w.length > 3) cvSkillsFromJSON.push(w); });
-                                }
-                              } catch {}
+                              // Title keyword match (30 pts max) — splits query into tokens, no stop words
+                              const TITLE_STOP = new Set(['en', 'et', 'de', 'du', 'des', 'les', 'un', 'une', 'le', 'la', 'au', 'aux', 'par', 'pour', 'sur', 'avec', 'dans', 'ou', 'qui', 'que', 'il', 'elle', 'ils', 'elles', 'je', 'tu', 'nous', 'vous', 'a', 'the', 'and', 'or', 'of', 'in', 'to', 'for', 'with', 'is', 'are', 'not', 'be', 'an', 'it', 'at', 'by', 'from']);
+                              const queryTokens = (jobSearchQuery || '').toLowerCase()
+                                .replace(/[()[\]{}.,;:!?]/g, ' ')
+                                .split(/\s+/)
+                                .filter(w => w.length > 2 && !TITLE_STOP.has(w));
+                              if (queryTokens.length > 0) {
+                                // Count how many query tokens match title OR description
+                                const titleHits = queryTokens.filter(tok => rawTitle.includes(tok) || desc.includes(tok)).length;
+                                score += Math.round((titleHits / queryTokens.length) * 30);
+                              }
 
-                              const allCvSkills = [...new Set([...cvSkillsFromAI, ...cvSkillsFromJSON, ...customSemanticTags])];
-                              const cvTitle = (jobSearchQuery || '').toLowerCase();
+                              // Company fuzzy match (25 pts)
+                              if (jobSearchCompany) {
+                                const rawComp = (job.company?.display_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                                const searchComp = jobSearchCompany.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                if (rawComp && searchComp && (rawComp.includes(searchComp) || searchComp.includes(rawComp))) score += 25;
+                              }
 
-                              // 🌍 Villes hors-France à filtrer
-                              const NON_FRANCE_CITIES = [
-                                'casablanca', 'rabat', 'marrakech', 'fès', 'fez', 'tanger', 'agadir', 'maroc',
-                                'tunis', 'sfax', 'sousse', 'tunisie', 'alger', 'oran', 'algérie', 'algerie',
-                                'dakar', 'abidjan', 'lomé', 'douala', 'yaoundé', 'genève', 'geneve', 'zurich',
-                                'bruxelles', 'montreal', 'québec', 'dubai', 'lausanne', 'berne',
-                              ];
-                              
-                              const scoredJobs = (data || []).map((job: any) => {
-                                 let score = 0;
-                                 let matchedSkills: string[] = [];
-                                 const rawDesc = decodeHTML(job.description || '');
-                                 const desc = rawDesc.toLowerCase();
-                                 const rawTitle = (job.title || '').toLowerCase();
+                              // Skill matching with synonyms (up to 60 pts)
+                              if (allCvSkills.length > 0) {
+                                let skillHits = 0;
+                                allCvSkills.forEach((sk: string) => {
+                                  const skLow = sk.toLowerCase();
+                                  const synonyms = SYNONYMS[skLow] || [];
+                                  const found = desc.includes(skLow) || synonyms.some(s => desc.includes(s));
+                                  if (found) {
+                                    skillHits++;
+                                    if (!matchedSkills.includes(sk)) matchedSkills.push(sk);
+                                  }
+                                });
+                                score += Math.min(Math.round((skillHits / Math.max(allCvSkills.length, 1)) * 70), 60);
+                              } else {
+                                score += 40;
+                              }
+                              // Geo-filter: only check location field, not description (avoids false positives)
+                              const locationStr = (job.location?.display_name || job.location?.area?.join(' ') || '').toLowerCase();
+                              const _isAbroad = strictGeoFilter && NON_FRANCE_CITIES.some((city: string) => locationStr.includes(city));
 
-                                 // Title keyword match (30 pts max) — splits query into tokens, no stop words
-                                 const TITLE_STOP = new Set(['en','et','de','du','des','les','un','une','le','la','au','aux','par','pour','sur','avec','dans','ou','qui','que','il','elle','ils','elles','je','tu','nous','vous','a','the','and','or','of','in','to','for','with','is','are','not','be','an','it','at','by','from']);
-                                 const queryTokens = (jobSearchQuery || '').toLowerCase()
-                                   .replace(/[()[\]{}.,;:!?]/g, ' ')
-                                   .split(/\s+/)
-                                   .filter(w => w.length > 2 && !TITLE_STOP.has(w));
-                                 if (queryTokens.length > 0) {
-                                   // Count how many query tokens match title OR description
-                                   const titleHits = queryTokens.filter(tok => rawTitle.includes(tok) || desc.includes(tok)).length;
-                                   score += Math.round((titleHits / queryTokens.length) * 30);
-                                 }
-                                 
-                                 // Company fuzzy match (25 pts)
-                                 if (jobSearchCompany) {
-                                    const rawComp = (job.company?.display_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                                    const searchComp = jobSearchCompany.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                    if (rawComp && searchComp && (rawComp.includes(searchComp) || searchComp.includes(rawComp))) score += 25;
-                                 }
-                                 
-                                 // Skill matching with synonyms (up to 60 pts)
-                                 if (allCvSkills.length > 0) {
-                                   let skillHits = 0;
-                                   allCvSkills.forEach((sk: string) => {
-                                      const skLow = sk.toLowerCase();
-                                      const synonyms = SYNONYMS[skLow] || [];
-                                      const found = desc.includes(skLow) || synonyms.some(s => desc.includes(s));
-                                      if (found) {
-                                        skillHits++;
-                                        if (!matchedSkills.includes(sk)) matchedSkills.push(sk);
-                                      }
-                                   });
-                                   score += Math.min(Math.round((skillHits / Math.max(allCvSkills.length, 1)) * 70), 60);
-                                 } else {
-                                   score += 40;
-                                 }
-                                 // Geo-filter: only check location field, not description (avoids false positives)
-                                 const locationStr = (job.location?.display_name || job.location?.area?.join(' ') || '').toLowerCase();
-                                 const _isAbroad = strictGeoFilter && NON_FRANCE_CITIES.some((city: string) => locationStr.includes(city));
+                              return { ...job, description: rawDesc, _matchScore: Math.min(score, 99), _matchedSkills: matchedSkills, _isAbroad };
+                            });
 
-                                 return { ...job, description: rawDesc, _matchScore: Math.min(score, 99), _matchedSkills: matchedSkills, _isAbroad };
-                              });
+                            // Sort + filter abroad
+                            const filteredJobs = strictGeoFilter ? scoredJobs.filter((j: any) => !j._isAbroad) : scoredJobs;
+                            filteredJobs.sort((a: any, b: any) => b._matchScore - a._matchScore);
+                            setJobMatches(filteredJobs);
+                            setHasSearched(true);
 
-                              // Sort + filter abroad
-                              const filteredJobs = strictGeoFilter ? scoredJobs.filter((j: any) => !j._isAbroad) : scoredJobs;
-                              filteredJobs.sort((a: any, b: any) => b._matchScore - a._matchScore);
-                              setJobMatches(filteredJobs);
-                              setHasSearched(true);
-
-                            } catch (err: any) {
-                              alert(err.message);
-                            } finally {
-                              setIsSearchingJobs(false);
-                            }
-                          }}
-                        >
-                          {isSearchingJobs ? 'Scraping...' : '🔥 Auto-Match CV'}
-                        </button>
-                     </div>
+                          } catch (err: any) {
+                            alert(err.message);
+                          } finally {
+                            setIsSearchingJobs(false);
+                          }
+                        }}
+                      >
+                        {isSearchingJobs ? 'Scraping...' : '🔥 Auto-Match CV'}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* RESULTS LIST */}
                 <div style={{ display: 'grid', gap: '15px' }}>
+                  {jobMatches.length > 0 && (
+                    <div className="animate-in" style={{ 
+                      padding: '2.5rem 1.5rem', 
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.1) 100%)', 
+                      border: '1px solid var(--border)', 
+                      borderRadius: 'var(--r-lg)',
+                      marginBottom: '1rem',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', padding: '0 1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <Globe size={20} color="var(--gold)" className="spin-slow" />
+                          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--gold)' }}>
+                            SIG TERMINAL
+                          </h3>
+                        </div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text3)', fontWeight: 700, background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '4px' }}>
+                          LIVE GEOLOCATION ACTIVE
+                        </div>
+                      </div>
+                      
+                      <div style={{ width: '100%' }}>
+                        <div style={{ position: 'relative', width: '100%', height: '520px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                           <JobMap jobs={jobMatches} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {jobMatches.length > 0 ? jobMatches.map((job: any) => (
                     <div key={job.id} style={{ padding: '15px', background: 'var(--surface-subtle)', borderRadius: '8px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', top: 0, right: 0, padding: '8px 12px', background: job._matchScore >= 80 ? 'rgba(16, 185, 129, 0.1)' : job._matchScore >= 50 ? 'rgba(251, 191, 36, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: job._matchScore >= 80 ? '#10B981' : job._matchScore >= 50 ? '#F59E0B' : '#EF4444', fontWeight: 800, borderBottomLeftRadius: '8px', fontSize: '0.8rem' }}>
                         {job._matchScore}% Match
                       </div>
 
-                      <a href={job.redirect_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)', fontWeight: 800, fontSize: '1.1rem', textDecoration: 'none', display: 'block', marginBottom: '8px', paddingRight: '100px' }}>
+                      <a href={job.redirect_url} target="_blank" rel="noopener noreferrer" style={{
+                        color: 'var(--gold-bright)',
+                        fontWeight: 900,
+                        fontSize: '1.25rem',
+                        textDecoration: 'none',
+                        display: 'block',
+                        marginBottom: '4px',
+                        paddingRight: '120px',
+                        lineHeight: '1.2'
+                      }}>
                         {job.title}
                       </a>
-                      
-                      <div style={{ display: 'flex', gap: '15px', fontSize: '0.8rem', color: 'var(--text2)', marginBottom: '10px', flexWrap: 'wrap' }}>
-                        <span>🏢 {job.company?.display_name || 'Entreprise masquée'}</span>
-                        <span>📍 {job.location?.display_name || 'Non spécifié'}</span>
-                        <span style={{ color: 'var(--gold)' }}>💰 {job.salary_min ? `~${job.salary_min}€` : 'Non renseigné'}</span>
-                        {job.contract_type && <span style={{ color: 'var(--cyan)' }}>⏰ {job.contract_type === 'permanent' ? 'CDI' : job.contract_type === 'contract' ? 'CDD/Mission' : job.contract_type}</span>}
-                        {job.created && <span>📅 {new Date(job.created).toLocaleDateString('fr-FR')}</span>}
+
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
+                        <span style={{ background: 'var(--card)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--text)', fontWeight: 600, border: '1px solid var(--border)' }}>🏢 {job.company?.display_name || 'Confidentiel'}</span>
+                        {job.created && (
+                          <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', color: 'var(--text3)', border: '1px solid var(--border)' }}>
+                            📅 {new Date(job.created).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                          </span>
+                        )}
+                        <span style={{ background: 'var(--card)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--cyan)', fontWeight: 600, border: '1px solid var(--border)' }}>📍 {job.location?.display_name || 'Lieu non défini'}</span>
+                        {job.salary_min && <span style={{ background: 'rgba(232, 160, 48, 0.1)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--amber)', fontWeight: 600, border: '1px solid rgba(232, 160, 48, 0.2)' }}>💰 ~{job.salary_min}€</span>}
                       </div>
 
                       {/* MATCHED SKILLS CHIPS */}
                       {job._matchedSkills && job._matchedSkills.length > 0 && (
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                           <span style={{ fontSize: '0.65rem', color: 'var(--text3)' }}>Aptitudes trouvées :</span>
-                           {job._matchedSkills.map((sk: string) => (
-                             <span key={sk} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem' }}>✓ {sk}</span>
-                           ))}
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text3)' }}>Aptitudes trouvées :</span>
+                          {job._matchedSkills.map((sk: string) => (
+                            <span key={sk} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem' }}>✓ {sk}</span>
+                          ))}
                         </div>
                       )}
 
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text)', lineHeight: '1.5' }}>
-                        {job.description}
+                      <p style={{
+                        fontSize: '0.85rem',
+                        color: 'var(--text2)',
+                        lineHeight: '1.6',
+                        marginBottom: '20px',
+                        fontStyle: 'italic',
+                        position: 'relative',
+                        padding: '12px',
+                        background: 'rgba(255,255,255,0.02)',
+                        borderRadius: '6px',
+                        borderLeft: '2px solid var(--border)'
+                      }}>
+                        "{job.description}"
                       </p>
+
+                      <div style={{ 
+                        marginTop: '1.2rem', 
+                        padding: '1rem', 
+                        border: '1px dashed var(--gold)', 
+                        borderRadius: '8px', 
+                        background: 'rgba(200, 169, 110, 0.05)',
+                        position: 'relative'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Shield size={14} color="var(--gold)" />
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CONSEIL</span>
+                          </div>
+                          <a href={job.redirect_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.65rem', color: 'var(--cyan)', textDecoration: 'none', fontWeight: 700, background: 'rgba(99,179,237,0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                            VOIR L'OFFRE COMPLÈTE &rarr;
+                          </a>
+                        </div>
+                        <p style={{ fontSize: '0.7rem', color: 'var(--text3)', margin: 0, lineHeight: '1.4' }}>
+                          Pour un résultat <b>100% précis</b> : Récupérez le contenu complet de l'offre via le lien ci-dessus, 
+                          collez-le dans la <b style={{color:'var(--gold)'}}>sidebar à gauche</b> (Job Description) et relancez l'analyse pour adapter votre CV.
+                        </p>
+                      </div>
                     </div>
                   )) : (
                     <div style={{ padding: '30px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--border)' }}>
@@ -2360,15 +2524,15 @@ export default function Home() {
                         <Download size={14} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
                         TÉLÉCHARGER PDF
                       </button>
-                      <button 
-                        className="btn-outline" 
+                      <button
+                        className="btn-outline"
                         onClick={async () => {
                           try {
                             const cvDataToUse = editedCvDataJSON ? JSON.parse(editedCvDataJSON) : analysisResult?._cv_data;
                             const res = await fetch('/api/export-docx', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ 
+                              body: JSON.stringify({
                                 cv_data: {
                                   ...cvDataToUse,
                                   theme: selectedTheme,
