@@ -153,8 +153,9 @@ async function callGoogle(
     } catch (err: any) {
       console.error(`[${label}][${modelName}] Error:`, err?.message || err);
       const msg = err?.message || '';
-      if (msg === 'timeout' || msg.includes('quota') || msg.includes('429')) {
-        console.warn(`[${label}] ${modelName} skipped, trying next...`);
+      // Retry on: timeout, quota, rate limit (429), high demand (503), service unavailable
+      if (msg === 'timeout' || msg.includes('quota') || msg.includes('429') || msg.includes('503') || msg.includes('high demand') || msg.includes('Service Unavailable')) {
+        console.warn(`[${label}] ${modelName} skipped (${msg.includes('503') || msg.includes('high demand') ? 'high demand' : msg.includes('429') ? 'rate limit' : 'timeout'}), trying next...`);
         lastError = err;
         continue;
       }
