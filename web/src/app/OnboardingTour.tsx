@@ -111,7 +111,6 @@ const STEPS: TourStep[] = [
     title: '✨ CV Généré !',
     desc: 'Regarde ici : ton nouveau CV est là. Design pro, structure ATS, prêt à l\'envoi.',
     position: 'left',
-    action: 'waitForPdf',
   },
   {
     target: '[data-tour="visual-edit-toggle"]',
@@ -153,16 +152,9 @@ const STEPS: TourStep[] = [
     position: 'bottom',
   },
   {
-    target: '[data-tour="compare-tab"]',
-    title: '🛡️ Onglet Privacy',
-    desc: 'Enfin, vérifions la sécurité de tes données dans l\'onglet Privacy.',
-    position: 'bottom',
-    action: 'switchToCompareTab',
-  },
-  {
     target: '[data-tour="privacy-shield-header"]',
     title: '🛡️ Privacy Shield (Zero-Trust)',
-    desc: 'IRIS protège ta vie privée. Tes clés API et ton CV sont stockés localement. Aucune donnée personnelle n\'est conservée sur nos serveurs. AES-256 & TLS 1.3 garantis.',
+    desc: 'Enfin, IRIS protège ta vie privée. Tes clés API et ton CV sont stockés localement. Aucune donnée personnelle n\'est conservée sur nos serveurs. AES-256 & TLS 1.3 garantis.',
     position: 'bottom',
   },
   {
@@ -170,7 +162,6 @@ const STEPS: TourStep[] = [
     title: '🚀 C\'est à toi !',
     desc: 'Bonne chance ! Si tu as un doute, le guide est toujours là (?).',
     position: 'right',
-    action: 'switchToAuditTab',
   },
 ];
 
@@ -203,9 +194,21 @@ export default function OnboardingTour() {
     };
   }, []);
 
+  const ensureSidebarOpen = useCallback(() => {
+      const body = document.querySelector('.sidebar-body');
+      const toggle = document.querySelector('.sidebar-toggle') as HTMLElement;
+      if (body && body.classList.contains('collapsed') && toggle) {
+          toggle.click();
+      }
+  }, []);
+
   const updateRect = useCallback(() => {
     const selector = STEPS[step]?.target;
     if (!selector) return;
+
+    if (step >= 1 && step <= 4) {
+        ensureSidebarOpen();
+    }
     
     let attempts = 0;
     const find = () => {
@@ -220,8 +223,8 @@ export default function OnboardingTour() {
         }
         
         if (el) {
-            // ONLY scroll once per step to avoid the "sliding/gliding" jitter bug on iOS
             if (hasScrolledForStep.current !== step) {
+                // Use a smaller block offset to keep target visible
                 el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
                 hasScrolledForStep.current = step;
             }
@@ -232,7 +235,6 @@ export default function OnboardingTour() {
                     setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
                 }
             };
-            // Throttled measurements
             setTimeout(measure, 400);
             setTimeout(measure, 1000);
         } else if (attempts < 20) {
@@ -241,7 +243,7 @@ export default function OnboardingTour() {
         }
     };
     find();
-  }, [step]);
+  }, [step, ensureSidebarOpen]);
 
   useEffect(() => {
     if (!active) {
@@ -392,8 +394,8 @@ export default function OnboardingTour() {
   const prev = () => { if (step > 0) setStep(s => s - 1); };
   const finish = () => { setActive(false); (window as any).__isTourActive = false; localStorage.setItem('IRIS_tour_done_v15', '1'); };
 
-  const PAD = 10;
-  const tooltipW = typeof window !== 'undefined' && window.innerWidth <= 768 ? Math.min(window.innerWidth - 40, 320) : 340;
+  const PAD = 15;
+  const tooltipW = typeof window !== 'undefined' && window.innerWidth <= 768 ? Math.min(window.innerWidth - 40, 280) : 340;
 
   const tooltipStyle = (): React.CSSProperties => {
     if (!rect) return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' };
@@ -413,9 +415,16 @@ export default function OnboardingTour() {
 
     if (isMobile) {
       left = (viewW - tooltipW) / 2;
-      top = rect.top + rect.height + PAD + 10;
-      if (top + 220 > viewH) top = rect.top - 220 - PAD;
-      top = Math.max(10, Math.min(viewH - 230, top));
+      // Increase distance to avoid overlapping the halo
+      top = rect.top + rect.height + PAD + 40; 
+      
+      // If it overflows bottom, move it to the top
+      if (top + 180 > viewH) {
+          top = rect.top - 200 - PAD;
+      }
+      
+      // Ensure it stays within screen bounds
+      top = Math.max(10, Math.min(viewH - 210, top));
     } else {
       top = rect.top + rect.height / 2 - 120;
       left = rect.left + rect.width + PAD + 60;
@@ -472,6 +481,11 @@ export default function OnboardingTour() {
                 steps={['Ouvre Google AI Studio', 'Clique sur "Get API key"', 'Copie-la dans la barre latérale']}
                 link="https://aistudio.google.com/app/apikey" format="AIzaSy..." 
               />
+              <ApiGuide 
+                id="mistral" title="🌊 MISTRAL (IA Française - Gratuit)" 
+                steps={['Ouvre Mistral Console', 'Va dans "API Keys"', 'Copie-la dans la barre latérale']}
+                link="https://console.mistral.ai/api-keys/" format="xxxxx..." 
+              />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -494,15 +508,15 @@ export default function OnboardingTour() {
             )}
           </div>
 
-          <div style={{ ...tooltipStyle(), background: 'var(--card)', border: '1px solid var(--gold)', borderRadius: 20, padding: '1.2rem', boxShadow: '0 20px 60px rgba(0,0,0,0.5)', pointerEvents: 'all' }}>
-            <div style={{ display: 'flex', gap: 4, marginBottom: '1rem' }}>
+          <div style={{ ...tooltipStyle(), background: 'var(--card)', border: '1px solid var(--gold)', borderRadius: 20, padding: '1rem', boxShadow: '0 20px 60px rgba(0,0,0,0.5)', pointerEvents: 'all' }}>
+            <div style={{ display: 'flex', gap: 4, marginBottom: '0.8rem' }}>
               {STEPS.map((_, i) => <div key={i} style={{ flex: 1, height: 3, borderRadius: 1.5, background: i <= step ? 'var(--gold)' : 'var(--border)', transition: 'background 0.3s' }} />)}
             </div>
-            <h3 style={{ fontSize: '1rem', marginBottom: '0.6rem', color: 'var(--text)', fontWeight: 800 }}>{STEPS[step].title}</h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text2)', lineHeight: 1.5, marginBottom: '1.2rem' }}>{STEPS[step].desc}</p>
+            <h3 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text)', fontWeight: 800 }}>{STEPS[step].title}</h3>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text2)', lineHeight: 1.4, marginBottom: '1rem' }}>{STEPS[step].desc}</p>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <button onClick={prev} disabled={step === 0 || waiting} style={{ background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '0.5rem 1rem', fontSize: '0.55rem', cursor: 'pointer', opacity: (step === 0 || waiting) ? 0.4 : 1 }}>← Préc.</button>
-              <button onClick={next} disabled={waiting} style={{ background: 'linear-gradient(135deg, var(--gold), var(--gold-bright))', color: '#000', border: 'none', borderRadius: 8, padding: '0.5rem 1rem', fontSize: '0.6rem', fontWeight: 800, cursor: waiting ? 'wait' : 'pointer' }}>
+              <button onClick={prev} disabled={step === 0 || waiting} style={{ background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '0.4rem 0.8rem', fontSize: '0.55rem', cursor: 'pointer', opacity: (step === 0 || waiting) ? 0.4 : 1 }}>← Préc.</button>
+              <button onClick={next} disabled={waiting} style={{ background: 'linear-gradient(135deg, var(--gold), var(--gold-bright))', color: '#000', border: 'none', borderRadius: 8, padding: '0.4rem 0.8rem', fontSize: '0.6rem', fontWeight: 800, cursor: waiting ? 'wait' : 'pointer' }}>
                 {waiting ? '...' : step === STEPS.length - 1 ? 'OK !' : 'Suivant →'}
               </button>
             </div>
